@@ -1,36 +1,29 @@
 name: Build and Deploy
-# 监听 master 分支上的 push 事件
+
 on:
   push:
     branches:
       - main
 jobs:
   build-and-deploy:
-    # 构建环境使用 ubuntu
     runs-on: ubuntu-latest
 
     steps:
-      # 官方action, 将代码拉取到虚拟机
       - name: Checkout
         uses: actions/checkout@v3
         with:
           persist-credentials: false
 
-      # 部署到服务器
-      - name: Upload to Deploy Server
+      - name: Build and Deploy
         uses: appleboy/ssh-action@master
         with:
-          # 服务器域名
           host: ${{ secrets.SERVER_HOST }}
-          # 服务器用户名
           username: ${{ secrets.SERVER_USERNAME }}
-          # 服务器密码
           password: ${{ secrets.SERVER_PASSWORD }}
-          # 服务器端口
           port: ${{ secrets.SERVER_PORT }}
           script: |
             cd /usr/www/dapangmao
             git pull
             npm install
             npm run build
-            pm2 restart npm --name dapangmao -- start
+            pm2 restart dapangmao --interpreter none -- start
