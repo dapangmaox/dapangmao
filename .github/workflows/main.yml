@@ -17,7 +17,7 @@ jobs:
           persist-credentials: false
 
       # 部署到服务器
-      - name: Upload to Deploy Server
+      - name: Deploy Server
         uses: actions/setup-node@v3
         with:
           # 服务器域名
