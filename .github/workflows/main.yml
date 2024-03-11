@@ -28,8 +28,9 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           # 服务器端口
           port: ${{ secrets.SERVER_PORT }}
-      - run: pwd
-      - run: git pull
-      - run: npm install
-      - run: npm run build
-      - run: pm2 restart npm --name dapangmao -- start
+          script: |
+            cd /usr/www/dapangmao
+            git pull
+            npm install
+            npm run build
+            pm2 restart npm --name dapangmao -- start
