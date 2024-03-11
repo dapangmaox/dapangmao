@@ -18,7 +18,7 @@ jobs:
 
       # 部署到服务器
       - name: Deploy Server
-        uses: appleboy/ssh-action@main
+        uses: appleboy/ssh-action@master
         with:
           # 服务器域名
           host: ${{ secrets.SERVER_HOST }}
