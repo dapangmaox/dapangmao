@@ -17,7 +17,7 @@ jobs:
           persist-credentials: false
 
       # 部署到服务器
-      - name: Upload to Deploy Server
+      - name: Upload to Deploy
         uses: appleboy/scp-action@master
         with:
           # 服务器域名
@@ -27,10 +27,14 @@ jobs:
           # 服务器密码
           password: ${{ secrets.SERVER_PASSWORD }}
           # 服务器端口
-          port: ${{ secrets.SERVER_PORT }}
-          run: |
-            cd /usr/www/dapangmao
-            git pull
-            npm install
-            npm run build
-            pm2 restart npm --name dapangmao -- start
+          port:
+            ${{ secrets.SERVER_PORT }}
+
+            # 部署到服务器
+      - name: Deploy
+        run: |
+          cd /usr/www/dapangmao
+          git pull
+          npm install
+          npm run build
+          pm2 restart npm --name dapangmao -- start
