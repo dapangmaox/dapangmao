@@ -33,4 +33,4 @@ jobs:
             git pull
             npm install
             npm run build
-            pm2 restart npm --name dapangmao -- start
+            pm2 start npm --name dapangmao -- start
