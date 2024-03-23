@@ -5,7 +5,7 @@ import './globals.css';
 
 export const metadata = {
   title: '大胖猫',
-  description: 'Liangxwei的个人博客',
+  description: '大胖猫的个人网站',
 };
 
 export default function RootLayout({
@@ -18,7 +18,7 @@ export default function RootLayout({
       <body className="text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 flex flex-col min-h-screen">
         <ThemeProvider>
           <Header />
-          <div className="grow">{children}</div>
+          <div className="grow pt-16">{children}</div>
           <Footer />
         </ThemeProvider>
       </body>

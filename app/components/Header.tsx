@@ -4,7 +4,7 @@ import ThemeSwitcher from './ThemeSwitcher';
 
 const Header = () => {
   return (
-    <div className="lg:border-b lg:border-slate-900/10 dark:border-slate-50/[0.06] bg-white/95 supports-backdrop-blur:bg-white/60 dark:bg-transparent">
+    <div className="fixed top-0 left-0 w-full h-16 border-b border-slate-900/10 dark:border-slate-50/[0.06] bg-white/95 supports-backdrop-blur:bg-white/60 dark:bg-transparent">
       <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8 ">
         <div className="relative flex h-16 items-center justify-between">
           <div className="flex items-center justify-center">

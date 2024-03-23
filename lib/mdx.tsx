@@ -2,9 +2,8 @@ import 'highlight.js/styles/atom-one-dark-reasonable.css';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeCodeTitles from 'rehype-code-titles';
-import rehypeHighlight from 'rehype-highlight';
+import rehypePrettyCode from 'rehype-pretty-code';
 import rehypeSlug from 'rehype-slug';
-import remarkGfm from 'remark-gfm';
 
 const Mdx = async ({ source }: { source: string }) => {
   return (
@@ -25,7 +24,8 @@ const Mdx = async ({ source }: { source: string }) => {
                 { behaviour: 'wrap' },
               ],
               rehypeCodeTitles,
-            ],
+              [rehypePrettyCode, {}],
+            ] as any[],
           },
         }}
       />
