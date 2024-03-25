@@ -3,7 +3,9 @@ import dayjs from 'dayjs';
 import Link from 'next/link';
 
 const BlogList = async () => {
-  const posts = await getBlogs();
+  const posts = (await getBlogs()).sort(
+    (a, b) => b.createdDate.getTime() - a.createdDate.getTime()
+  );
 
   return (
     <div>

@@ -4,8 +4,8 @@ import Link from 'next/link';
 
 const Footer = () => {
   return (
-    <div className="flex justify-center">
-      <span>© 2023 大胖猫</span>
+    <div className="flex justify-center my-2">
+      <span>© 2023-2024 大胖猫</span>
       <span className="ml-2 mr-2">|</span>
       <Link
         className="text-blue-400 hover:text-blue-500"

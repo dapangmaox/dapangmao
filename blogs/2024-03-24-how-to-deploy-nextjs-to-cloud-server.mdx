@@ -1,0 +1,348 @@
+---
+title: Next.js 项目部署到云服务器
+slug: how-to-deploy-nextjs-to-cloud-server
+cover: cover_5
+description: 本篇文章详细记录了从零配置云服务器、到实现自动化部署的完整过程。
+---
+
+最近在学习 Next.js， 搭建了个简单的个人博客，地址：[大胖猫](https://liangxwei.com/)，本篇文章详细记录了完整的部署过程，包括从零配置云服务器、使用 GitHub Actions 自动化部署、nginx 反向代理、https 配置等。
+
+不同于传统的静态文件部署，Next.js 是运行在 node.js 上的，项目部署一般有三种选择：
+
+- 部署到 Vercel，但因为网络关系，国内无法访问
+- 使用 Docker 部署
+- 部署到自己的服务器
+
+本篇文章选择了最后一种方式，个人用的是腾讯云服务器，接下来是完整的配置过程。
+
+## 准备工作
+
+在有了云服务器之后，首先安装操作系统，我选择的是 CentOS Stream 9。
+
+接下来使用 dnf 包管理器来安装需要的软件，因此在连接到服务器之后，先更新一下 dnf：
+
+```bash
+sudo dnf update
+```
+
+### 环境安装
+
+要用到的软件很简单，只有三个：
+
+- Node.js：用来运行 Next.js 项目
+- nginx：做为反向代理服务器
+- git：用来拉取项目代码
+
+#### 1. 安装 Node.js
+
+CentOS 安装 Node.js 很简单，可以参考 [Node.js 安装文档](https://nodejs.org/en/download/package-manager#centos-fedora-and-red-hat-enterprise-linux)。
+
+首先查看可用的版本：
+
+```bash
+dnf module list nodejs
+```
+
+之后选择一个版本安装，我这里安装了 Node.js v20.
+
+```bash
+dnf module install nodejs:20/common
+```
+
+安装完成之后，运行 `node -v` 看到版本号输出，说明安装成功。
+
+#### 2. 安装 nginx
+
+接下来安装 nginx，只需要按照[官方文档](https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#installing-prebuilt-rhel-centos-oracle-linux-almalinux-rocky-linux-packages)操作即可。
+
+1. 安装和更新 EPEL 仓库:
+
+```bash
+sudo dnf install epel-release
+
+sudo dnf update
+```
+
+2. 安装 nginx
+
+```bash
+sudo dnf install nginx
+```
+
+3. 查看版本，输出版本号，说明安装成功
+
+```bash
+sudo nginx -v
+```
+
+> nginx 默认的配置路径在 `/etc/nginx/nginx.conf`，稍后我们会用到。
+
+#### 3. 安装 git
+
+接下来安装 git，用来从 GitHub 拉取项目代码。
+
+```bash
+sudo dnf install git
+```
+
+安装完成之后查看版本：
+
+```bash
+git --version
+```
+
+如果输出类似于 `git version 2.43.0` 说明安装成功。
+
+安装完成之后配置用户信息：
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "your_email@example.com"
+```
+
+之后需要配置 SSH key。
+
+```bash
+# 1. 生成新的 SSH 密钥对
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+
+# 2. 启动 SSH 代理并添加 SSH 密钥
+eval $(ssh-agent -s)
+ssh-add ~/.ssh/id_rsa
+
+# 3. 复制公钥内容
+cat ~/.ssh/id_rsa.pub
+```
+
+到 GitHub [setting](https://github.com/settings/keys) 页面添加复制的 SSH key。
+
+## 创建项目
+
+接下来创建项目。为了演示简单，我使用 `create-next-app` 创建了一个空项目：
+
+```bash
+sudo npx create-next-app@latest
+```
+
+接下来会提示你输入项目名，之后一路回车选择默认选项就可以。创建项目之后推送到 GitHub。
+
+推送到 GitHub 之后登录服务器，到 `/usr/www` 目录（按个人喜好，随便某个目录，用来拉取项目文件），将项目 clone 下来。
+
+之后到项目的目录，安装依赖、打包、启动项目。
+
+```bash
+npm install
+npm run build
+npm run start
+```
+
+现在应该可以在控制台看到启动成功，就像平时在本地启动项目一样。但现在是访问不到的，因为云服务器默认不会开启 3000 端口。我们需要到云服务器的防火墙配置一下，开启 3000 端口，具体的添加方式取决于使用的云服务商。之后用浏览器访问一下（xxx 是你的公网 IP）项目地址：
+
+```bash
+http://111.xxx.xx.xxx:3000
+```
+
+![deploy-1](/images/2024/deploy-1.png)
+
+已经可以访问到项目页面了！
+
+## 自动化部署
+
+到现在为止，我们通过手动克隆代码、手动打包并启动的方式把项目在云服务器跑起来了。但我们肯定不希望每次有代码改动都登录服务器重新操作一遍。接下来使用 PM2 和 GitHub actions 来自动化这个过程。
+
+### 安装 PM2
+
+PM2（Process Manager 2）是一个用于管理和监控 Node.js 应用程序的进程管理器。它简化了在生产环境中部署、运行和维护 Node.js 应用的过程。
+
+我们将通过 PM2 来启动我们的应用。
+
+首先安装 PM2:
+
+```bash
+npm install pm2@latest -g
+```
+
+安装完成之后可以通过 `pm2 -version` 查看版本，之后运行以下命令启动项目：
+
+```bash
+pm2 start npm --name "your-app-name" -- start
+```
+
+![pm2-start](/images/2024/pm2-start.png)
+
+会看到类似上图中的输出，继续通过 IP 加端口号访问应用，应用照常运行。
+
+### 配置 GitHub Actions
+
+GitHub Actions 是 GitHub 提供的一项功能，用于自动化软件开发工作流程。它允许我们在 GitHub 上设置和执行自定义的 CI/CD（持续集成/持续部署）工作流。通过 GitHub Actions，我们可以在代码存储库中设置各种自动化任务，例如构建、测试、部署、发布和其他自定义工作流程。
+
+打开代码仓库页面，点击 Settings -> Sectets and variables -> Actions -> New repository sectet
+
+依次添加以下变量：
+
+```
+Name：SERVER_HOST / Secret：服务器公网 IP
+Name：SERVER_USERNAME / Secret：服务器用户名
+Name：SERVER_PASSWORD / Secret：服务器密码
+Name：SERVER_PORT / Secret：服务器端口
+```
+
+在代码仓库页面点击 Actions -> set up a workflow yourself
+
+在编辑窗口写入以下代码：
+
+```yaml
+name: Build and Deploy # 为GitHub Actions工作流命名
+
+on:
+  push:
+    branches:
+      - main # 当推送到main分支时触发工作流
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest # 使用Ubuntu操作系统作为运行环境
+
+    steps:
+      - name: Checkout # 步骤1：从仓库检出代码
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false # 不保留凭据
+
+      - name: Build and Deploy # 步骤2：构建和部署
+        uses: appleboy/ssh-action@master # 使用SSH Action插件
+        with:
+          host: ${{ secrets.SERVER_HOST }} # 从GitHub Secrets中获取服务器主机名
+          username: ${{ secrets.SERVER_USERNAME }} # 从GitHub Secrets中获取服务器用户名
+          password: ${{ secrets.SERVER_PASSWORD }} # 从GitHub Secrets中获取服务器密码
+          port: ${{ secrets.SERVER_PORT }} # 从GitHub Secrets中获取服务器端口号
+          script: |
+            cd /usr/www/xxx  # 切换到项目目录
+            git pull  # 从远程仓库拉取最新代码
+            npm install  # 安装项目依赖
+            npm run build  # 执行构建脚本
+            pm2 restart dapangmao --interpreter none -- start  # 使用PM2重启应用程序
+```
+
+注意 workflow 中最后一行代码：
+
+```bash
+pm2 restart dapangmao --interpreter none -- start
+```
+
+因为我们已经在服务器通过 pm2 启动了项目了，因此这里用的是 restart，即使应用程序已经在运行，也会停止当前的进程并重新启动。
+
+记得把 branches 和项目目录替换为你自己的值，点击保存。保存之后 GitHub 就会按照我们写的 workflow 开始拉取代码、构建并重启项目。
+
+要查看构建进度的话，可以访问 `https://github.com/<username>/<project-name>/actions` 页面，会列出所有的 workflow。
+
+![workflows](/images/2024/workflows.png)
+
+如果显示构建成功，仍然可以通过端口号 + ip 的方式访问项目。
+
+为了查看项目确实是通过 GitHub Actions 自动部署的，可以编辑 `app/page.tsx` 中的 html 并提交，等新的 workflow 构建完成之后，访问页面看修改是否生效。
+
+## nginx 配置
+
+到现在为止，我们实现了代码自动部署，并且可以通过 IP 加端口号的方式访问到页面。如果你不光有云服务器，也有自己的域名，也备案了。可以继续往下看，我们来配置 nginx。
+
+上文也有提到过，nginx 默认的配置位于 `etc/nginx/nginx.conf`，打开并编辑这个文件，将默认的 `server` 部分替换为以下内容，代理请求到本地运行的 Next.js 项目。
+
+```
+server {
+    listen       80;
+    listen       [::]:80;
+    server_name  www.your_domain.com your_domain.com;
+
+    # Load configuration files for the default server block.
+    include /etc/nginx/default.d/*.conf;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+保存之后重启 nginx：
+
+```bash
+sudo systemctl restart nginx
+```
+
+OK，现在可以通过域名访问项目了，访问 `http://your_domain.com/`，网站访问正常。
+
+### 配置 https
+
+最后我们还需要配置 https，首先申请免费的 https 证书。这一步操作可能各大云服务商有些差异，本文还是以腾讯云为例。
+
+首先前往[控制台](https://console.cloud.tencent.com/ssl) 申请免费 https 证书，按照提示操作就行。
+
+申请完成之后点击右侧的下载：
+
+![https](/images/2024/https.png)
+
+选择 nginx 下载：
+
+![https-download](/images/2024/https-download.png)
+
+下载完成之后，在服务器的 `etc/nginx` 目录下创建一个 `ssl` 目录，将下载的 `your_domain.com.key` 和 `your_domain.com_bundle.crt` 两个文件拷贝进去（可以借助各种 ftp 工具）。
+
+修改 nginx 配置文件：
+
+```
+server {
+    listen       80;
+    listen       [::]:80;
+    server_name  www.your_domain.com your_domain.com;
+
+    # Load configuration files for the default server block.
+    include /etc/nginx/default.d/*.conf;
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# Settings for a TLS enabled server.
+
+server {
+    listen       443 ssl http2;
+    listen       [::]:443 ssl http2;
+    server_name  www.your_domain.com your_domain.com;
+    root         /usr/share/nginx/html;
+
+    ssl_certificate "/etc/nginx/ssl/your_domain.com_bundle.crt";
+    ssl_certificate_key "/etc//nginx/ssl/your_domain.com.key";
+    ssl_session_cache shared:SSL:1m;
+    ssl_session_timeout  10m;
+    ssl_ciphers PROFILE=SYSTEM;
+    ssl_prefer_server_ciphers on;
+
+    # Load configuration files for the default server block.
+    include /etc/nginx/default.d/*.conf;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+上面的配置中，我们不光添加了 https 部分的配置，也把原来的 http 重定向到了 https 地址。
+
+保存之后重启 nginx：
+
+```bash
+sudo systemctl restart nginx
+```
+
+访问 `https://your_domain.com/`，会发现我们的网站已经是 https 加密访问了，OK，大功告成！
