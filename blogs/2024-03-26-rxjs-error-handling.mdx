@@ -1,0 +1,52 @@
+---
+title: RxJS 错误处理不完全指南
+slug: rxjs-error-handling
+cover: cover_5
+description: 在这篇文章中，我列出了一些常见的错误处理方式，可以涵盖大多数使用场景。
+---
+
+错误处理是 RxJS 中的重要组成部分，只要我们使用 RxJS，基本上就绕不开错误处理。
+
+但是由于 RxJS 本身陡峭的学习曲线，以及各种各样的操作符，使得 RxJS 的错误处理并不容易理解，在这篇文章中，我列出了一些常见的错误处理方式，可以涵盖大多数使用场景。
+
+## 前提
+
+为了理解 RxJS 中的错误处理，我们首先要明确一个前提：
+
+**RxJS 是基于流（stream）的，任何给定的流只能出错一次，发出错误通知后，Observable 就会终止执行，后续的订阅也不会再收到任何值。**
+
+这个前提对于我们更好地理解 RxJS 错误处理至关重要。
+
+## subscribe 的 error 回调函数
+
+第一种错误处理方式是在订阅 Observable 时传入错误处理函数。
+
+我们最常用的订阅可能长这样：
+
+```ts
+observable.subscribe((x) => console.log(x));
+```
+
+但其实 subscribe 也可以传入一个对象，先来看一下 Observable subscribe 函数的定义：
+
+```ts
+subscribe(observerOrNext?: Partial<Observer<T>> | ((value: T) => void) | null): Subscription {
+  ...
+}
+```
+
+可以看到除了传入一个函数，也可以传入 `Partial<Observer<T>>` 作为参数，再来看一下 `Observer` 的定义：
+
+```ts
+export interface Observer<T> {
+  next: (value: T) => void;
+  error: (err: any) => void;
+  complete: () => void;
+}
+```
+
+- next：每次流发出值都会调用这个函数，如果在 subscribe 中只传入一个函数，就等于只传了这个函数。
+- error：错误处理函数，仅在发生错误时调用，参数 err 就是 Observable 发出的错误。
+- complete：完成处理函数，仅当流完成时才会调用。
+
+我们可以在 `error` 函数中进行错误处理，来看一个例子：
