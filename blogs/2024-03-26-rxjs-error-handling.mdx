@@ -317,3 +317,128 @@ observable
 运行结果如下：
 
 ![5](/images/2024/rxjs-error-handling-5.png)
+
+## 重试策略
+
+除了使用 `catchError` 给默认值，或者重新报错之外，我们还可以尝试另一种策略：重试（retry）。
+
+比如由于服务器不稳定导致 API 调用失败，很可能我们重新调用一遍就成功了，这时候就可以尝试 retry。
+
+重试的核心就是：如果流出错了，那就重新订阅流的来源，创建一个新的流。
+
+当然没出错的话就和 `catchError` 一样，输入什么流就输出什么流。
+
+### 什么时候重试
+
+重试之前，有个问题需要明确：是否立即重试？如果要等待的话，等待多久重试？
+
+为了回答这歌问题，我们需要一个辅助 Observable，我们将其称为 Notifier Observable，这个 Observable 用来决定什么时候尝试重试。
+
+### retryWhen
+
+`retryWhen` 操作符用于在 Observable 发生错误时进行重试。它允许我们根据错误进行条件性的重试，而不是简单地无限重试。通过 `retryWhen`，我们可以指定一个 observable，该 observable 控制重试的频率和条件。
+
+来看一个官网的例子：
+
+```js
+const { interval, map, retryWhen, tap } = require('rxjs');
+
+const source = interval(1000);
+const result = source.pipe(
+  map((value) => {
+    if (value > 3) {
+      // error will be picked up by retryWhen
+      throw value;
+    }
+    return value;
+  }),
+  retryWhen((errors) =>
+    errors.pipe(
+      // log error message
+      tap((value) => console.log(`Value ${value} was too high!`))
+    )
+  )
+);
+
+result.subscribe((value) =>
+  console.log(`value: ${value}, current seconds: ${new Date().getSeconds()}`)
+);
+```
+
+让我们逐步分析这段代码的执行过程：
+
+1. `const source = interval(1000);`：创建一个 Observable，每隔 1 秒发出一个递增的整数。
+
+2. `const result = source.pipe(...)`：创建一个新的 Observable `result`，对源 Observable 进行管道操作。
+
+3. `map` 操作符用于转换源 Observable 发出的值。在这个示例中，当源 Observable 发出的值大于 3 时，会抛出一个错误。如果值小于或等于 3，则会返回原始值。
+
+4. **`retryWhen` 操作符用于在遇到错误时进行重试。它接收一个函数作为参数，该函数接收一个表示错误的 Observable，并返回一个 Observable，控制重试的行为。**
+
+5. 在 `retryWhen` 中，`errors` observable 发出了源 Observable 发出的错误值。`tap` 操作符用于在发生错误时打印错误消息。
+
+6. `result.subscribe((value) => console.log(value));`：订阅 `result` Observable，输出它发出的值。
+
+所以，根据上述分析，当执行代码后，运行结果如下：
+
+![6](/images/2024/rxjs-error-handling-6.png)
+
+现在我们通过使用 `retryWhen` 实现了重试，试着观察打印出来的当前秒数可以看到，出错之后也是隔了一秒就发出了新的值，说明现在是立即重试的。
+
+现在我们解决立即重试，那如果我们想等待一段时间重试该怎么办呢。这就用到了另一个操作符 - `delayWhen`。
+
+### delayWhen
+
+`delayWhen` 操作符用于在 Observable 发出值之前添加延迟。它会接收一个函数作为参数，该函数会接收源 Observable 发出的值，并返回一个 Observable，该 Observable 会发出一个值，用于指示要延迟的时间。
+
+来看一个例子：
+
+```js
+const { interval, map, retryWhen, tap, timer, delayWhen } = require('rxjs');
+
+const source = interval(1000);
+const result = source.pipe(
+  map((value) => {
+    if (value > 3) {
+      // error will be picked up by retryWhen
+      throw value;
+    }
+    return value;
+  }),
+  retryWhen((errors) =>
+    errors.pipe(
+      // log error message
+      tap((value) => console.log(`Value ${value} was too high!`)),
+      delayWhen(() => timer(3000))
+    )
+  )
+);
+
+result.subscribe((value) =>
+  console.log(`value: ${value}, current seconds: ${new Date().getSeconds()}`)
+);
+```
+
+和立即重试的唯一区别就是在 `retryWhen` 加了一行代码：`delayWhen(() => timer(3000))`，通过 `delayWhen` 操作符添加一个延迟来控制重试的频率，使用 `timer` 来设置每次重试之间的延迟为 3s。
+
+运行结果如下：
+
+![7](/images/2024/rxjs-error-handling-7.png)
+
+通过观察可以看到，在打印错误消息之后，每次重试都延迟了 3s。
+
+## 总结
+
+RxJS 常用的错误处理方式差不多就是这些，简单分成三大类：
+
+- 使用 subscribe 函数的 error 回调函数
+- 使用 `catchError` 操作符
+- 使用 `retryWhen` 操作符
+
+在实际开发中，可以根据不同的业务场景选择不同的错误处理方式。
+
+## 参考链接
+
+- [catchError](https://rxjs.dev/api/index/function/catchError)
+- [delayWhen](https://rxjs.dev/api/index/function/delayWhen)
+- [RxJs Error Handling: Complete Practical Guide](https://blog.angular-university.io/rxjs-error-handling/)
