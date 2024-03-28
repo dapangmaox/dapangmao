@@ -1,7 +1,7 @@
 ---
-title: RxJS 错误处理不完全指南
+title: RxJS 错误处理指南
 slug: rxjs-error-handling
-cover: cover_5
+cover: cover_6
 description: 在这篇文章中，我列出了一些常见的错误处理方式，可以涵盖大多数使用场景。
 ---
 
@@ -14,6 +14,8 @@ description: 在这篇文章中，我列出了一些常见的错误处理方式�
 为了理解 RxJS 中的错误处理，我们首先要明确一个前提：
 
 **RxJS 是基于流（stream）的，任何给定的流只能出错一次，发出错误通知后，Observable 就会终止执行，后续的订阅也不会再收到任何值。**
+
+这是由 Observable 契约规定的，任何流都是这样。一个 stream 要么完成（complete），要么出错（error），不可能两种情况同时出现，并且完成和出错都是可选的。
 
 这个前提对于我们更好地理解 RxJS 错误处理至关重要。
 
@@ -45,8 +47,273 @@ export interface Observer<T> {
 }
 ```
 
-- next：每次流发出值都会调用这个函数，如果在 subscribe 中只传入一个函数，就等于只传了这个函数。
+- next：每次流发出值都会调用这个函数，如果在订阅时只传入了一个函数，相当于只传了这个 next 函数。
 - error：错误处理函数，仅在发生错误时调用，参数 err 就是 Observable 发出的错误。
 - complete：完成处理函数，仅当流完成时才会调用。
 
-我们可以在 `error` 函数中进行错误处理，来看一个例子：
+先来看一个正常运行的例子：
+
+```js
+const { Observable } = require('rxjs');
+
+const observable = new Observable((subscriber) => {
+  subscriber.next(1);
+  subscriber.next(2);
+  subscriber.next(3);
+  subscriber.complete();
+});
+
+observable.subscribe({
+  next(x) {
+    console.log('got value ' + x);
+  },
+  error(err) {
+    console.error('something wrong occurred: ' + err);
+  },
+  complete() {
+    console.log('done');
+  },
+});
+```
+
+运行结果如下：
+
+![1](/images/2024/rxjs-error-handling-1.png)
+
+这个流按顺序 emit 三个值出来，之后会 complete。再来看一下出错的情况：
+
+```js
+const { Observable } = require('rxjs');
+
+const observable = new Observable((subscriber) => {
+  subscriber.next(1);
+  subscriber.next(2);
+  subscriber.error('value cannot be greater than 2');
+  subscriber.next(3);
+  subscriber.complete();
+});
+
+observable.subscribe({
+  next(x) {
+    console.log('got value ' + x);
+  },
+  error(err) {
+    console.error('something wrong occurred: ' + err);
+  },
+  complete() {
+    console.log('done');
+  },
+});
+```
+
+运行结果如下：
+
+![2](/images/2024/rxjs-error-handling-2.png)
+
+可以看到，如果 Observable 报错，那么会调用我们的 error 回调函数，并且之后不会有任何值 emit 出来，更不会 complete。
+
+这种错误处理方式可能是最常见的，但是在某些情况下并不适用。
+
+比如，我们的 observable 任务是通过网络请求获取数据，当请求出错时想给一个默认值，但 observable 在发出错误的那一刻就终止了。
+
+但别急，RxJS 已经给了方案 - 操作符（operators）。
+
+## catchError 操作符
+
+在同步编程中，我们可以通过 `try {} catch {}` 块来包裹任何错误，然后在 `catct` 中处理错误。
+
+```js
+try {
+  // 可能会抛出异常的代码块
+  console.log('Start of try block');
+  // 这里会抛出一个异常
+  throw new Error('An error occurred');
+} catch (error) {
+  // 异常处理代码块
+  console.error('Caught an error:', error.message);
+}
+```
+
+这样处理错误非常简单，但是 JavaScript 中大部分操作都是异步的，比如远程请求一个 API，RxJS 中提供的 `catchError` 操作符可以帮助我们处理类似的场景。
+
+### catchError 原理
+
+和其他操作符一样，`catchError` 是一个函数，接受一个 Observable，输出一个 Observable。每次调用 `catchError` 时需要传入一个错误处理函数。
+
+```ts
+export function catchError<T, O extends ObservableInput<any>>(
+  selector: (err: any, caught: Observable<T>) => O
+): OperatorFunction<T, T | ObservedValueOf<O>>;
+```
+
+`catchError` 操作符将一个可能出错的 Observable 作为输入，并发出和输入一样的 Observable。如果没有错误，`catchError` 产生的输出 Observable 与输入 Observable 完全相同。
+
+但是如果发生了错误，`catchError` 就会生效，我们在 `catchError` 中传入的函数就会被调用，返回一个备用的 Observable，以便继续流程。
+
+来看一个例子：
+
+```ts
+const { Observable, catchError, of } = require('rxjs');
+
+const observable = new Observable((subscriber) => {
+  subscriber.next(1);
+  subscriber.next(2);
+  subscriber.error('value cannot be greater than 2');
+  subscriber.next(3);
+  subscriber.complete();
+});
+
+observable
+  .pipe(
+    catchError((err) => {
+      console.log('catchError: ', err);
+      return of('default value');
+    })
+  )
+  .subscribe({
+    next(x) {
+      console.log('got value ' + x);
+    },
+    error(err) {
+      console.error('something wrong occurred: ' + err);
+    },
+    complete() {
+      console.log('done');
+    },
+  });
+```
+
+我们在订阅的代码中加了 `catchError` 操作符，先打印错误，然后返回了一个新的 Observable。
+
+运行结果如下：
+
+![3](/images/2024/rxjs-error-handling-3.png)
+
+让我们逐步分析一下这段代码的执行过程，了解每次打印的内容：
+
+1. `subscriber.next(1);`：Observable 发出值 `1`，然后 `next` 回调被调用，打印 `got value 1`。
+
+2. `subscriber.next(2);`：Observable 发出值 `2`，然后 `next` 回调被调用，打印 `got value 2`。
+
+3. `subscriber.error('value cannot be greater than 2');`：在这里发生了错误，Observable 发出错误消息 `'value cannot be greater than 2'`，然后 `catchError` 操作符捕获了这个错误，因此 `catchError` 中的错误处理函数被调用，打印 `catchError: value cannot be greater than 2`。然后 `catchError` 返回了一个备用的 Observable，`of('default value')`。因此，订阅者会收到 `'default value'`。接下来不会再有任何值被发出，因为错误已经终止了 Observable。
+
+4. 订阅者收到了 `'default value'`，然后 `next` 回调被调用，打印 `got value default value`。
+
+5. 由于 Observable 已经终止，不会再有任何值被发出，因此 `complete` 回调被调用，打印 `done`。至此，Observable 的生命周期结束。
+
+> 需要注意的是，我们在文章开头已经讲过，任何给定的流只能出错一次，发出错误通知后，Observable 就会终止执行，后续的订阅也不会再收到任何值。因此在这段代码中，我们在 step 4 和 5 中打印的内容，其实是自动订阅了 `catchError` 返回的新的 Observable，和原来的 Observable 已经没有关系了。
+
+### 重新抛出错误
+
+我们也可以在 `catchError` 中再次抛出错误，一个常见的情景是，在 `catchError` 做一些逻辑处理，然后把这个错误继续抛出去，这样我们在订阅时传入的 error 回调函数仍然会被执行。
+
+```ts
+observable
+  .pipe(
+    catchError((err) => {
+      // add your error handling logic here
+      console.log('catchError: ', err);
+      return throwError(() => err);
+    })
+  )
+  .subscribe({
+    next(x) {
+      console.log('got value ' + x);
+    },
+    error(err) {
+      console.error('something wrong occurred: ' + err);
+    },
+    complete() {
+      console.log('done');
+    },
+  });
+```
+
+只需要将 `catchError` 中的 return 部分改为 `return throwError(() => err);`，运行结果如下：
+
+![4](/images/2024/rxjs-error-handling-4.png)
+
+可以看到，由于我们在捕获错误之后又抛出了错误，所以 `catchError` 和 `error` 函数都会执行。
+
+### 多次抛出错误
+
+如果有需要，我们也可以在同一个 Observable chain 中多次调用 `catchError`。比如这样：
+
+```ts
+observable
+  .pipe(
+    catchError((err) => {
+      console.log('catchError 1: ', err);
+      return throwError(() => err);
+    }),
+    catchError((err) => {
+      console.log('catchError 2: ', err);
+      return of('default value');
+    })
+  )
+  .subscribe({
+    next(x) {
+      console.log('got value ' + x);
+    },
+    error(err) {
+      console.error('something wrong occurred: ' + err);
+    },
+    complete() {
+      console.log('done');
+    },
+  });
+```
+
+### finalize 操作符
+
+我们刚提到了 JavaScript 中同步的 `try {} catch {}`，但别忘了后面还有一个 `finally` 代码块，`finally` 块中的代码无论如何都会被执行
+
+```js
+try {
+  // 可能会抛出异常的代码块
+  console.log('Start of try block');
+  // 这里会抛出一个异常
+  throw new Error('An error occurred');
+} catch (error) {
+  // 异常处理代码块
+  console.error('Caught an error:', error.message);
+} finally {
+  // 清理代码块
+  console.log('Finally block');
+}
+```
+
+RxJS 也为我们提供了类似功能：`finalize` 操作符（因为 finally 是关键字，所以叫 finalize）。
+
+和 `catchError` 操作符一样，`finalize` 操作符也可以被调用多次。
+
+```js
+observable
+  .pipe(
+    catchError((err) => {
+      console.log('catchError 1: ', err);
+      return throwError(() => err);
+    }),
+    finalize(() => console.log('[finalize] Called once')),
+    catchError((err) => {
+      console.log('catchError 2: ', err);
+      return of('default value');
+    }),
+    finalize(() => console.log('[finalize] Called twice'))
+  )
+  .subscribe({
+    next(x) {
+      console.log('got value ' + x);
+    },
+    error(err) {
+      console.error('something wrong occurred: ' + err);
+    },
+    complete() {
+      console.log('done');
+    },
+  });
+```
+
+运行结果如下：
+
+![5](/images/2024/rxjs-error-handling-5.png)
