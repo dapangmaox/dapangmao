@@ -1,0 +1,376 @@
+---
+title: Angular 响应式表单
+slug: angular-forms
+cover: cover_7
+description: 使用表单处理用户输入是许多常见应用程序的基石。Angular 提供了两种不同的方式来通过表单处理用户输入：响应式（Reactive）和模板驱动式（template-driven）。
+---
+
+使用表单处理用户输入是许多常见应用程序的基石。Angular 提供了两种不同的方式来通过表单处理用户输入：响应式（Reactive）和模板驱动式（template-driven）。
+
+## 概述
+
+响应式表单（Reactive forms）提供了对底层表单对象模型的直接、显式访问。与模版驱动表单相比，更强大、更具扩展性、可重用性和可测试性。如果表单是应用程序中的关键部分，推荐使用响应式表单。
+
+模板驱动表单（Template-driven forms）依靠模板中的指令（directives）来创建和操作底层对象模型。适合向应用中添加简单的表单。如果有非常基本的表单要求和只能在模板中管理的逻辑，那么模板驱动的表单可能是一个不错的选择。
+
+### 主要差异
+
+下表总结了响应式表单和模板驱动表单之间的主要区别：
+
+|                | Reactive               | Template-driven    |
+| -------------- | ---------------------- | ------------------ |
+| 表单模型的设置 | 显式的，在组件类中创建 | 隐式的，由指令创建 |
+| 数据模型       | 结构化且不可变         | 非结构化且可变     |
+| 数据流         | 同步                   | 异步               |
+| 表单验证       | 功能                   | 指令               |
+
+## 表单中的数据流
+
+当应用程序包含表单时，Angular 必须保持视图与组件模型同步，以及组件模型与视图同步。当用户更改值并通过视图进行选择时，新值必须反映在数据模型中。同样，当程序逻辑更改数据模型中的值时，这些值必须反映在视图中。
+
+响应式表单和模板驱动表单的不同之处在于它们处理来自用户或编程更改的数据流的方式。
+
+### 响应式表单的数据流向
+
+在响应式表单中，视图中的每个表单元素都直接链接到表单模型（`FormControl`实例）。从视图到模型以及从模型到视图的更新都是同步的，并且不依赖于 UI 的展现方式。
+
+#### view-to-model
+
+```ts
+import { Component, OnInit } from '@angular/core';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { RouterOutlet } from '@angular/router';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [RouterOutlet, ReactiveFormsModule],
+  template: `Favorite Color:
+    <input type="text" [formControl]="favoriteColorControl" />`,
+})
+export class AppComponent implements OnInit {
+  favoriteColorControl = new FormControl('');
+
+  ngOnInit(): void {
+    this.favoriteColorControl.valueChanges.subscribe((v) => {
+      console.log('current value: ', v);
+    });
+  }
+}
+```
+
+从视图到模型的数据流动（以 input 元素为例）：
+
+1. 用户在 input 中输入一个值
+2. input 元素会发出（emit）具有最新值的输入事件
+3. `ControlValueAccessor` 监听表单输入元素上的事件，通过 `setValue` 将新值赋值到 `FormControl` 实例
+4. `FormControl` 实例通过 `valueChanges` observable 发出新值
+5. 所有订阅 `valueChanges` observable 的订阅者都会收到新值
+
+![reactive-view-to-model](/images/2024/angular-forms/reactive-view-to-model.png)
+
+#### model-to-view
+
+```ts
+import { Component, OnInit } from '@angular/core';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { RouterOutlet } from '@angular/router';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [RouterOutlet, ReactiveFormsModule],
+  template: `Favorite Color:
+    <input type="text" [formControl]="favoriteColorControl" />
+    <button (click)="onSetValue()">Set Value</button>`,
+})
+export class AppComponent implements OnInit {
+  favoriteColorControl = new FormControl('');
+
+  ngOnInit(): void {
+    this.favoriteColorControl.valueChanges.subscribe((v) => {
+      console.log('current value: ', v);
+    });
+  }
+
+  onSetValue() {
+    this.favoriteColorControl.setValue('Blue');
+  }
+}
+```
+
+从模型到视图的过程：
+
+1. 用户调用 `favoriteColorControl.setValue()` 方法，该方法会更新 `FormControl` 的值
+2. `FormControl` 实例通过 `valueChanges` observable 发出新值
+3. 所有订阅 `valueChanges` observable 的订阅者都会收到新值
+4. 表单输入元素上的控制值访问器用新值更新该元素
+
+![reactive-model-to-view](/images/2024/angular-forms/reactive-model-to-view.png)
+
+### 模板驱动表单的数据流向
+
+在模板驱动的表单中，每个表单元素都链接到一个在内部管理表单模型的指令，该指令实现了 `ControlValueAccessor` 接口， 负责跟踪字段的值，并将其传递回父表单。
+
+#### view-to-model
+
+```ts
+import { Component } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterOutlet } from '@angular/router';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [RouterOutlet, FormsModule],
+  template: `Favorite Color:
+    <input
+      type="text"
+      [(ngModel)]="favoriteColor"
+      (ngModelChange)="colorChange($event)"
+    />`,
+})
+export class AppComponent {
+  favoriteColor = '';
+
+  colorChange(color: string) {
+    console.log('new color: ', color);
+  }
+}
+```
+
+从视图到模型的数据流动（以 input 元素为例）：
+
+1. 用户在 input 中输入一个值
+2. input 元素会发出（emit）具有最新值的输入事件
+3. 附加到 input 的控制值访问器会触发 `FormControl` 实例上的 `setValue()` 方法
+4. `FormControl` 实例通过 `valueChanges` observable 发出新值
+5. 所有订阅 `valueChanges` observable 的订阅者都会收到新值
+6. 控制值访问器还调用发出 `ngModelChange` 事件的 `NgModel.viewToModelUpdate()` 方法
+7. 由于组件模板对 `favoriteColor` 属性使用双向数据绑定，因此组件中的 `favoriteColor` 属性将更新为 `ngModelChange` 事件发出的值
+
+![reactive-view-to-model](/images/2024/angular-forms/template-driven-view-to-model.png)
+
+#### model-to-view
+
+```ts
+import { Component } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterOutlet } from '@angular/router';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [RouterOutlet, FormsModule],
+  template: `Favorite Color:
+    <input
+      type="text"
+      [(ngModel)]="favoriteColor"
+      (ngModelChange)="colorChange($event)"
+    />
+    <button (click)="onSetValue()">Set Value</button>`,
+})
+export class AppComponent {
+  favoriteColor = 'Blue';
+
+  colorChange(color: string) {
+    console.log('new color: ', color);
+  }
+
+  onSetValue() {
+    this.favoriteColor = 'Red';
+  }
+}
+```
+
+从模型到视图的过程：
+
+1. `favoriteColor` 值在组件中更新。
+2. 变更检测（Change detection）开始
+3. 在变更检测期间，会在 `NgModel` 指令实例上调用 `ngOnChanges` 生命周期钩子函数，因为其输入之一的值已更改
+4. `ngOnChanges()` 方法将异步任务排队以设置内部 `FormControl` 实例的值
+5. 变更检测完成
+6. 在下一个变更检测周期，将执行设置 `FormControl` 实例值的任务
+7. `FormControl` 实例通过 `valueChanges` observable 发出最新值
+8. 所有订阅 `valueChanges` observable 的订阅者都会收到新值
+9. 控件值访问器使用最新的 `favoriteColor` 值更新视图中的表单输入元素。
+
+![reactive-view-to-model](/images/2024/angular-forms/template-driven-model-to-view.png)
+
+## 数据模型的可变性（Mutability）
+
+**响应式表单**通过将数据模型作为不可变的数据结构来保持数据模型的纯净。每次在数据模型上触发更改时，`FormControl` 实例都会返回一个新的数据模型，而不是更新现有数据模型。这使开发者能够通过控件的可观察对象跟踪对数据模型的唯一更改。变更检测效率更高，因为它只需要对唯一的更改进行更新。并且由于数据更新遵循响应式模式，因此可以与 observable 运算符集成以转换数据。
+
+对**模板驱动表单**来说，当模板中发生更改时，依靠双向数据绑定的可变性来更新组件中的数据模型。由于使用双向数据绑定时，数据模型上没有可跟踪的唯一更改，因此变更检测在确定何时需要更新方面效率较低。
+
+## 添加表单控件
+
+使用表单控件分为三个步骤：
+
+1. 注册 `ReactiveFormsModule`
+2. 生成一个新组件并实例化一个新的 `FormControl`
+3. 在模板中注册 `FormControl`
+
+示例代码：
+
+```ts
+import { AsyncPipe } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { RouterOutlet } from '@angular/router';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [RouterOutlet, ReactiveFormsModule, AsyncPipe],
+  template: `<label for="name">Name: </label>
+    <input id="name" type="text" [formControl]="name" />
+
+    <p>Value: {{ name.value }}</p>
+    <p>Value: {{ name.valueChanges | async }}</p>`,
+})
+export class AppComponent implements OnInit {
+  name = new FormControl('');
+
+  ngOnInit(): void {
+    this.name.valueChanges.subscribe((v) => {
+      console.log('current value: ', v);
+    });
+  }
+}
+```
+
+要显示表单控件值有以下方式：
+
+- 通过 `valueChanges` observable，可以使用 `AsyncPipe` 监听模版中表单值的变化，或者使用 `subscribe()` 方法监听组件类中表单值的变化。
+- 使用 `value` 属性，该属性提供了当前值的快照。
+
+### 替换表单控件的值
+
+响应式表单具有以编程方式更改控件值的方法，这是我们可以灵活地更新值而无需用户交互。表单控件实例提供 `setValue()` 方法，该方法更新表单控件的值并根据控件的结构验证所提供值的结构。例如，当从后端 API 或服务检索表单数据时，使用 `setValue()` 方法将控件更新为其新值，完全替换旧值。
+
+```ts
+import { AsyncPipe } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { RouterOutlet } from '@angular/router';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [RouterOutlet, ReactiveFormsModule, AsyncPipe],
+  template: `<label for="name">Name: </label>
+    <input id="name" type="text" [formControl]="name" />
+
+    <p>Value: {{ name.value }}</p>
+    <p>Value: {{ name.valueChanges | async }}</p>
+
+    <button type="button" (click)="updateName()">Update Name</button>`,
+})
+export class AppComponent implements OnInit {
+  name = new FormControl('');
+
+  ngOnInit(): void {
+    this.name.valueChanges.subscribe((v) => {
+      console.log('current value: ', v);
+    });
+  }
+
+  updateName() {
+    this.name.setValue('Nancy');
+  }
+}
+```
+
+## 对表单进行分组
+
+表单通常包含多个控件，响应式表单提供了两种将多个相关控件分组的方法。
+
+- FormGroup：定义一个带有一组固定控件的表单，也可以嵌套表单以创建更复杂的表单。
+- FormArray：定义动态表单，可以在运行时添加和删除控件。也可以嵌套表单数组以创建更复杂的表单。
+
+在组件中创建一个属性，并将该属性设置为新的 `FormGroup` 实例。要初始化 `FormGroup`，需要为构造函数提供映射到其控件的命名键的对象。
+
+`FormGroup` 可以接受单个表单控件实例和其他的表单组，这使得我们可以创建复杂的嵌套的表单模型。
+
+```ts
+@Component({...})
+export class ProfileEditorComponent {
+  profileForm = new FormGroup({
+    firstName: new FormControl(''),
+    lastName: new FormControl(''),
+    address: new FormGroup({
+      street: new FormControl(''),
+      city: new FormControl(''),
+      state: new FormControl(''),
+      zip: new FormControl(''),
+    }),
+  });
+}
+```
+
+各个表单控件现在收集在一个组中，接下来关联到视图。
+
+```html
+<form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
+  <label for="first-name">First Name: </label>
+  <input id="first-name" type="text" formControlName="firstName" />
+  <label for="last-name">Last Name: </label>
+  <input id="last-name" type="text" formControlName="lastName" />
+  <div formGroupName="address">
+    <h2>Address</h2>
+    <label for="street">Street: </label>
+    <input id="street" type="text" formControlName="street" />
+    <label for="city">City: </label>
+    <input id="city" type="text" formControlName="city" />
+    <label for="state">State: </label>
+    <input id="state" type="text" formControlName="state" />
+    <label for="zip">Zip Code: </label>
+    <input id="zip" type="text" formControlName="zip" />
+  </div>
+</form>
+<p>Form Value: {{ profileForm.value | json }}</p>
+<button type="button" (click)="updateProfile()">Update Profile</button>
+```
+
+在实际场景中，通常希望捕获表单值并使其可用于组件外部的进一步处理。 `FormGroup` 指令监听 `form` 元素发出的 `submit` 事件，并发出可绑定到回调函数的 `ngSubmit` 事件。使用 `onSubmit()` 回调方法将 `ngSubmit` 事件侦听器添加到 `form` 标记。
+
+### FormBuilder
+
+处理多个表单时，手动创建表单控件实例可能会变得重复。 `FormBuilder` 服务提供了生成控件的便捷方法。
+
+```ts
+import { CommonModule, JsonPipe } from '@angular/common';
+import { Component, inject } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+
+@Component({
+  selector: 'app-profile-editor',
+  standalone: true,
+  imports: [ReactiveFormsModule, JsonPipe, CommonModule],
+  templateUrl: './profile-editor.component.html',
+  styleUrl: './profile-editor.component.scss',
+})
+export class ProfileEditorComponent {
+  private formBuilder = inject(FormBuilder);
+
+  profileForm = this.formBuilder.group({
+    firstName: [''],
+    lastName: [''],
+    address: this.formBuilder.group({
+      street: [''],
+      city: [''],
+      state: [''],
+      zip: [''],
+    }),
+  });
+}
+```
+
+### 表单验证
+
+表单验证用于确保用户输入完整且正确。使用以下步骤添加表单验证。
+
+1. 在表单组件中导入验证器函数。
+2. 将验证器添加到表单中的字段中。
+3. 添加逻辑来处理验证状态。
