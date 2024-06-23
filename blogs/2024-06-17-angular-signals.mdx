@@ -1,0 +1,707 @@
+---
+title: Angular Signals
+slug: signals
+cover: cover_9
+description: Angular Signals（信号） 是 Angular 团队在其框架中引入的一种新的响应式编程概念，最早在 Angular 17 中引入。Signals 提供了一种新的数据绑定和变更检测机制，替代了传统的 Angular 变更检测策略（如 Zone.js）。
+---
+
+Angular Signals（信号） 是 Angular 团队在其框架中引入的一种新的响应式编程概念，最早在 Angular 17 中引入。Signals 提供了一种新的数据绑定和变更检测机制，替代了传统的 Angular 变更检测策略（如 Zone.js）。
+
+Signals 本身并不是什么新的概念，在很多前端框架中都有实现，比如 React、Vue、Svelte、SolidJS 等，都是通过响应式方式来实现高效的状态管理和 UI 更新。各个框架的实现细节和实现方式会有不同，但核心思想都是围绕着自动跟踪依赖关系和响应式更新。这种模型提高了开发效率和程序性能，特别是在处理复杂数据流和大规模应用时。
+
+## Signals 概述
+
+简单来说，Angular 中的 Signals 是一个响应式值，允许开发者以受控的方式更改值，并且跟踪值的变化。
+
+Angular 团队为 Signals 提供了很友好的 API，用来向框架报告数据更改。
+
+### Signal 的基本使用
+
+先来看一个例子：
+
+```ts
+import { Component, signal } from '@angular/core';
+
+@Component({
+  selector: 'app-counter',
+  standalone: true,
+  template: `
+    <h1>Current value of counter: {{ counter() }}</h1>
+    <button (click)="add()">Add</button>
+  `,
+})
+export class CounterComponent {
+  counter = signal(0);
+
+  add() {
+    this.counter.set(this.counter() + 1);
+  }
+}
+```
+
+代码虽然短，但是创建、读取和修改三个核心的操作都体现出来了。
+
+**创建**：通过 `signal()` API 创建一个 Signal（响应式数据源）`counter`。
+
+**读取**：通过调用 counter() 来获取当前值。我们可以设置任何值，但需要和初始值类型相同。
+
+**修改**：在 add() 方法中，通过 `set()` API 修改 counter 的值。除了 `set` 之外，Angular 还提供了 `update()` API，接收 Signal 的当前值作为输入参数，然后返回新值。
+
+```ts
+this.counter.update((counter) => counter + 1);
+```
+
+### Signals VS 原始值
+
+对于上面的例子来说，我们以前会这样写：
+
+```ts
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-counter',
+  standalone: true,
+  template: `
+    <h1>Current value of counter: {{ counter }}</h1>
+    <button (click)="add()">Add</button>
+  `,
+})
+export class CounterComponent {
+  counter = 0;
+
+  add() {
+    this.counter = this.counter + 1;
+  }
+}
+```
+
+只需要声明一个原始值，之后点击按钮的时候 +1 就可以了。运行起来效果也一样，那么 Signal 的优势在哪里呢？
+
+在传统的 Angular 中，变更监测时通过 Zone 实现的。Angular 在每次异步操作（比如点击事件、HTTP 请求等）之后，会触发变更检测，Angular 会检查整个组件树，检查所有绑定的值是否发生了变化。这种机制比较方便，但是会带来很多不必要的性能开销，尤其是在复杂的页面中。
+
+相比之下，Signal 提供了一种更精细的变更检测方式。当一个 Signal 的值发生变化时，只有那些依赖于该 Signal 的部分会重新计算和更新，这样可以减少不必要的性能开销。
+
+当然这只是其中一部分优势，我们会在文章后续介绍 Signal 的更多使用方式。
+
+### Writable signals 和 Computed signals
+
+Signals 分为 Writable signals 和 Computed signals，上面例子中创建的就是 Writable signals，提供了直接更新值的 API。完整类型如下：
+
+```ts
+counter: WritableSignal<number> = signal(0);
+```
+
+Computed signals 是从其他 Signals 派生出来的只读 Signals，值会从依赖的 Signals 推导出来，不提供更新 API。
+
+```ts
+const doubleCounter: Signal<number> = computed(() => counter() * 2);
+```
+
+并且 Computed signals 具有延迟计算（lazy evaluated）和记忆(memoize)的特性。
+
+在我们第一次读取 `doubleCounter` 之前，`doubleCounter` 的推导函数并不会运行来计算当前值。一旦读取之后，计算出的值会被缓存，如果再次读取，会返回缓存的值，不需要重新计算。
+
+如果依赖的 `counter` 值改变了，Angular 也会知道缓存的值不再有效，下次读取 `doubleCounter` 时会重新计算新值。
+
+Angular 只会跟踪推导过程中实际读取的 Signals，比如推导函数中使用了多个 Signals，但是由于 if 语句，导致只有部分 Signals 被读取了，那么 Angular 只会跟踪这部分 Signals。这样也会提高一部分性能。
+
+### 值为数组和对象的 Signals
+
+上面例子的 `counter` 值类型为 `number`，属于基本类型的值，如果我们要尝试定义一个值为数组或对象的 Signal，有几件事情需要注意。
+
+```ts
+import { Component, signal } from '@angular/core';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  template: `
+    <h3>List value: {{ list() }}</h3>
+
+    <h3>Object title: {{ object().title }}</h3>
+  `,
+})
+export class AppComponent {
+  list = signal(['Hello', 'World']);
+
+  object = signal({
+    id: 1,
+    title: 'Angular For Beginners',
+  });
+
+  constructor() {
+    this.list().push('Again');
+
+    this.object().title = 'overwriting title';
+  }
+}
+```
+
+我们分别创建了一个数组（list）和一个对象（object），并且在构造函数中直接改变了对象，并没有通过 `set()` 或 `update()` API 更改值。
+
+最终的渲染输出为：
+
+```
+List value: Hello,World,Again
+Object title: overwriting title
+```
+
+在我们的例子中可以正常渲染，但是这种做法绕过了 Signal 的系统，可能会导致各种意外的 bug，所以请**坚持始终**使用 Signals API 来改变 signal 的值。
+
+值得一提的是，Signal 默认的相等性检查是 `===`，只有当新值和之前的值不同时，Signal 才会发出新值。有时候，我们可能想自定义相等性检查的逻辑，可以把一个判断函数传图 `signal()` API 的第二个参数。
+
+### effect API
+
+我们知道可以通过 `computed()` API 来根据一个 source signal 推导另一个 signal，并且每当 source signal 发生变化时，响应推导出新的值。
+
+但是，如果我们不是想推导某个新值，而是想执行某种副作用呢。（这里的副作用是指的是那些不直接由函数的输入决定的行为，或者说是对函数外部状态的改变。）
+
+比如我们想：
+
+- 使用日志服务把 signal 的值记录下来
+- 把 signal 的值设置到 `localStorage` 或 `cookie` 中
+
+这些场景就需要用到一个新的 API - `effect()`。
+
+熟悉 React 的同学，是不是想到了 `useEffect()` 呢，的确，它们都是管理副作用的工具，但是在使用方式和工作机制上有一些区别。先来看一个例子：
+
+```ts
+import { Component, effect, signal } from '@angular/core';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  template: ` <button (click)="update()">Update</button> `,
+})
+export class AppComponent {
+  count = signal(0);
+
+  constructor() {
+    effect(() => {
+      console.log(`Current count: ${this.count()}`);
+    });
+  }
+
+  update() {
+    this.count.update((c) => c + 1);
+  }
+}
+```
+
+只要 `count` 变化，就会往控制台打印当前的值。
+
+`effect()` 函数至少会运行一次，所以在点击之前，就会在控制台看到打印了一条信息，另外一个原因是，通过初始运行一次，Angular 能够确定当前 effect 依赖于哪些 Signals。
+
+和 `computed()` 一样，依赖关系也是根据 effect 函数最后一次的调用动态确定的。
+
+```ts
+import { Component, effect, signal } from '@angular/core';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  template: `
+    <h3>
+      Current selection: {{ isAnotherCount() ? 'anotherCount' : 'count' }}
+    </h3>
+    <button (click)="isAnotherCount.set(!isAnotherCount())">
+      Toggle Selection
+    </button>
+    <button (click)="updateCount()">Update count</button>
+    <button (click)="updateAnotherCount()">Update anotherCount</button>
+  `,
+})
+export class AppComponent {
+  count = signal(0);
+  anotherCount = signal(0);
+  isAnotherCount = signal(false);
+
+  constructor() {
+    effect(() => {
+      console.log('count effect get called');
+      if (!this.isAnotherCount()) {
+        console.log(`Current count: ${this.count()}`);
+      }
+    });
+    effect(() => {
+      console.log('anotherCount effect get called');
+      if (this.isAnotherCount()) {
+        console.log(`Current anotherCount: ${this.anotherCount()}`);
+      }
+    });
+  }
+
+  updateCount() {
+    this.count.update((c) => c + 1);
+  }
+
+  updateAnotherCount() {
+    this.anotherCount.update((c) => c + 1);
+  }
+}
+```
+
+在这个例子中，行为如下：
+
+1. 应用初始化：
+
+打印如下：
+
+```
+count effect get called
+app.component.ts:26 Current count: 0
+app.component.ts:30 anotherCount effect get called
+```
+
+原因：初始化时两个 effect 函数都会运行，用来确定依赖关系。
+
+在第一个 effect 中，首先访问了 `isAnotherCount`，并且此时 `isAnotherCount` 值为 `false`，if 条件内的语句会执行，所以也会访问 `count`。所以第一个 effect 的依赖关系为：`isAnotherCount` 和 `count`。同理，第二个 effect 的依赖关系为：只依赖 `isAnotherCount`。
+
+2. 点击 `Update count` 和 `Update anotherCount`
+
+点击 `Update count` 改变 `count`：由于第一个 effect 依赖了 `count`，所以打印：
+
+```
+count effect get called
+app.component.ts:26 Current count: 1
+```
+
+点击 `Update anotherCount` 改变 `anotherCount`：目前没有任何 effect 依赖这个 signal，所以没有任何消息打印。
+
+3. 点击 `Toggle Selection`
+
+点击 `Toggle Selection` 会改变 `isAnotherCount`，由于两个 effect 都依赖于这个 signal，所以两个 effect 都会执行，并且此时 `isAnotherCount` 包裹的值为 true，所以第二个 effect 的 if 内的语句会执行，打印如下：
+
+```
+count effect get called
+app.component.ts:30 anotherCount effect get called
+app.component.ts:32 Current anotherCount: 1
+```
+
+4. 点击 `Update count` 和 `Update anotherCount`
+
+根据第二部的分析同理，这不就不赘述了。
+
+```
+anotherCount effect get called
+app.component.ts:32 Current anotherCount: 2
+```
+
+通过这个例子可以很好地理解 `effect` 函数的依赖是怎样确定的。
+
+#### 注入上下文（injection context）
+
+默认情况下，只能在注入上下文中创建 `effect()`。最简单的方式就是在组件、指令或服务的 `constructor` 中调用 `effect()`。
+
+```ts
+@Component({...})
+export class EffectiveCounterComponent {
+  readonly count = signal(0);
+  constructor() {
+    // Register a new effect.
+    effect(() => {
+      console.log(`The count is: ${this.count()}`);
+    });
+  }
+}
+```
+
+或者，也可以将 effect 分配给一个字段（这也为 effect 提供了一个描述性名称）。
+
+```ts
+@Component({...})
+export class EffectiveCounterComponent {
+  readonly count = signal(0);
+  private loggingEffect = effect(() => {
+    console.log(`The count is: ${this.count()}`);
+  });
+}
+```
+
+如果要在构造函数之外创建，还不给分配变量名，可以把 `Injector` 传递给 `effect`。
+
+```ts
+@Component({...})
+export class EffectiveCounterComponent {
+  readonly count = signal(0);
+  constructor(private injector: Injector) {}
+  initializeLogging(): void {
+    effect(() => {
+      console.log(`The count is: ${this.count()}`);
+    }, {injector: this.injector});
+  }
+}
+```
+
+#### 销毁 effects
+
+effect 会在上下文被销毁时自动销毁，比如在组件中使用，当组件被销毁时，effect 也会被销毁。
+
+effect 也会返回一个 `EffectRef`，可以通过调用 `.destroy()` 方法来手动销毁 effect。
+
+```ts
+import { Component, WritableSignal, effect, signal } from '@angular/core';
+
+@Component({
+  selector: 'app-counter',
+  standalone: true,
+  template: `
+    <h1>Current value of counter: {{ counter() }}</h1>
+    <button (click)="add()">Add</button>
+    <button (click)="destroy()">Destroy</button>
+  `,
+})
+export class CounterComponent {
+  counter: WritableSignal<number> = signal(0);
+
+  counterEffect = effect(() => {
+    console.log(this.counter());
+  });
+
+  add() {
+    this.counter.set(this.counter() + 1);
+  }
+
+  destroy() {
+    this.counterEffect.destroy();
+  }
+}
+```
+
+### 在多个组件中使用同一个 signal
+
+到目前为止我们都是在一个组件中使用 signal，如果多个组件需要使用同一个 signal 呢？
+
+我们可以在组件之外创建 Signal，并且在不同的组件中使用它。
+
+```ts
+// count.ts
+
+import { signal } from '@angular/core';
+
+export const count = signal(0);
+
+// count-a.component.ts
+import { Component } from '@angular/core';
+import { count } from './count';
+
+@Component({
+  selector: 'app-count-a',
+  standalone: true,
+  template: ` <h3>{{ count() }}</h3>
+    <button (click)="add()">Add</button>`,
+  styles: ``,
+})
+export class CountAComponent {
+  count = count;
+
+  add() {
+    this.count.set(this.count() + 1);
+  }
+}
+
+// count-b.component.ts
+@Component({
+  template: ` <h3>{{ count() }}</h3> `,
+  styles: ``,
+})
+export class CountBComponent {
+  count = count;
+}
+```
+
+我们在单独的文件中创建了一个 signal，并且在不同的组件使用了它，当在某个组件更新 `count` 的值时，另外一个组件也会改变。
+
+但更好的做法是使用服务：
+
+```ts
+import { Injectable, signal } from '@angular/core';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class CounterService {
+  private countSignal = signal(0);
+
+  readonly count = this.countSignal.asReadonly();
+
+  incrementCounter() {
+    this.countSignal.update((count) => count + 1);
+  }
+}
+```
+
+这和我们常用的 RxJS 的 BehaviorSubject 和 Observable 的 data 模式非常相似。但 signal 更容易理解，也少了 RxJS 的一些高级概念。
+
+## Signals 和 RxJS 集成
+
+上面介绍完了 Signal 一些基本的使用方式，接下来我们来看一下 Signals 是怎样与 RxJS 结合使用的。
+
+在这之前，需要说明一下，可能有些同学觉得 Signal 和 RxJS 的 Observable 有着很多相似的地方，比如：
+
+- 都属于响应式编程
+- 都管理了数据，并且在状态变化时发出通知
+- signal 的 effect 用来处理 signal 变化时的副作用，Observable 的 subscribe 用来处理流的副作用
+
+但两者在使用场景上是有着本质的区别的，Signals 和 Observable 各自的用途也不一样：
+
+- Signals 是 Angular 系统的一部分，通过响应式的方式来管理和响应状态变化，自动触发变更检测和 UI 渲染。
+- RxJS 的 Observable 用于处理异步数据流，以及使用丰富的操作符来管理复杂的异步事件和数据流。
+
+Angular 提供了一个包叫 `@angular/core/rxjs-interop`，用来把 Signal 和 RxJS Observables 集成。目前处于 developer review 阶段。
+
+### toSignal
+
+使用 `toSignal` 函数可以创建一个跟踪 Observable 值的 signal。它的行为与模板中的 `async` 管道类似，但更灵活，可以在代码中的任何位置使用。
+
+```ts
+import { Component } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { interval } from 'rxjs';
+
+@Component({
+  selector: 'app-counter',
+  standalone: true,
+  template: ` <h1>Current value of counter: {{ counter() }}</h1> `,
+})
+export class CounterComponent {
+  counterObservable = interval(1000);
+
+  counter = toSignal(this.counterObservable, { initialValue: 0 });
+}
+```
+
+使用 `toSignal` 有以下几个注意的点：
+
+1. 和 `async` 管道一样，`toSignal` 会立即订阅 Observable，这可能会触发 effect。当组件被销毁时，`toSignal` 创建的订阅会自动取消订阅这个 Observable。
+2. 和 `effect` 一样，`toSignal` 默认情况下需要在注入上下文中运行，例如在构建组件或服务期间。如果注入上下文不可用，您可以手动指定要使用的 `Injector`。
+3. 初始值可以通过 `initialValue` 指定，包含了在 Observable 第一次 emit 值之前返回的值。如果不提供 `initialValue`，在 Observable 第一次发出值之前，signal 的值为 undefined。
+4. 如果 `toSignal` 中使用的 Observable 产生错误，则在读取 signal 时会抛出该错误。如果 `toSignal` 中使用的 Observable 完成，signal 将继续返回完成前最近发出的值。
+
+### toObservable
+
+与 `toSignal` 相反，使用 `toObservable` 可以创建一个跟踪 signal 的 Observable。
+
+```ts
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [CounterComponent, AsyncPipe],
+  template: `
+    <h3>Current count: {{ count$ | async }}</h3>
+
+    <button (click)="add()">Add Count</button>
+    <button (click)="subscribe()">Subscribe</button>
+  `,
+})
+export class AppComponent {
+  http = inject(HttpClient);
+  counterService = inject(CounterService);
+
+  count$ = toObservable(this.counterService.countSignal);
+
+  result$ = this.count$.pipe(map((count) => count * 2));
+
+  add() {
+    this.counterService.countSignal.update((val) => val + 1);
+  }
+
+  subscribe() {
+    this.result$.subscribe((res) => console.log(res));
+  }
+}
+```
+
+点击 Subscribe 之后，每次点击 Add，`result` Observable 都会发出最新值，并且 `subscribe` 内的打印也会被执行。
+
+与 `toSignal` 类似，`toObservable` 也需要在注入上下文中运行。
+
+## Signal inputs
+
+Signal inputs（信号输入）允许从父组件绑定值，这些值在组件中通过 Signal 暴露，并且可以在组件的生命周期中更改。
+
+Angular 支持两种 input，默认情况下，input 是可选的，如果没有显式指定初始值，会隐式使用 `undefined`，除非使用 `input.required`。
+
+```ts
+import { Component, input } from '@angular/core';
+
+@Component({
+  selector: 'app-my-component',
+  standalone: true,
+  imports: [],
+  template: `
+    <h3>FirstName: {{ firstName() }}</h3>
+    <h3>LastName: {{ lastName() }}</h3>
+    <h3>Age: {{ age() }}</h3>
+  `,
+  styles: ``,
+})
+export class MyComponentComponent {
+  // optional
+  firstName = input<string>();
+  age = input(0);
+
+  // required
+  lastName = input.required<string>();
+}
+```
+
+`input()` 返回的类型为 `InputSignal`，继承自 `Signal`，所以具有 `Signal` 的特性，比如也可以使用 `computed()` 推导值。
+
+```ts
+ageMultiplied = computed(() => this.age() * 2);
+```
+
+或者使用 `effect()` 执行副作用。
+
+```ts
+constructor() {
+  effect(() => {
+    console.log(this.firstName());
+  });
+}
+```
+
+### value transform
+
+有时候你可能希望对 input 做一些修改，比如将原始值转换为预期的输入类型。可以通过传入一个 `transform` 函数，这个函数应该是纯函数。
+
+比如你的组件有一个 `disabled` 属性，但是父组件对应的变量值为 `boolean | string`，我们可以通过 `transform` 函数转换为纯布尔值类型。
+
+```ts
+disabled = input(false, {
+  transform: (value: boolean | string) => {
+    return typeof value === 'string' ? value === '' : value;
+  },
+});
+```
+
+这样，在组件中使用 disabled 就比较简单了，并且在使用这个组件的时候，也可以简写成：
+
+```html
+<app-my-component disabled> </app-my-component>
+```
+
+### input() vs @Input()
+
+看了用法和效果之后，你可能会问，这不就是 `@Input()` 吗。。。
+
+确实，Signal inputs 是 `@Input()` 的响应式替代方案，但是有以下优点：
+
+1. Signal inputs 类型更加安全
+2. 在模板中使用 Signal inputs 时，会自动把 `OnPush` 策略的组件标记为 dirty
+3. 每当 inputs 改变时，可以轻松使用 `computed()` 推导出值
+4. `effect` 比 `ngOnChanges` 更简单，而且只跟踪依赖的 signals
+
+## 模型输入（Model inputs）
+
+Model inputs（模型输入）是一种特殊类型的 input，它使组件能够将新值传播回另一个组件，当前也处于 developer preview 阶段。
+
+创建组件时，你可以像创建标准输入一样创建模型输入。
+
+```ts
+// my-component.component.ts
+import {Component, model, input} from '@angular/core';
+
+@Component({...})
+export class CustomCheckbox {
+  // This is a model input.
+  checked = model(false);
+  // This is a standard input.
+  disabled = input(false);
+}
+
+import { Component } from '@angular/core';
+import { MyComponentComponent } from './my-component.component';
+
+// app.component.ts
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [MyComponentComponent],
+  template: ` <app-my-component [(checked)]="checked"> </app-my-component> `,
+})
+export class AppComponent {
+  checked = false;
+}
+
+```
+
+两种类型的输入都允许将值绑定到属性中。但是模型输入允许组件将值写入属性，这是因为：
+
+- `input()` 返回类型为 `InputSignal`，继承了 `Signal`，没有修改方法（set 和 update）。
+- `model()` 返回类型为 `ModelSignal`，继承了 `WritableSignal`，所以可以更改。
+
+当组件将新值写入模型输入时，Angular 可以将新值传播回父组件。这就是双向绑定，因为值可以双向流动。
+
+### 与 signals 的双向绑定
+
+Angular 允许将 signal 绑定到模型输入。
+
+```ts
+import { Component, signal } from '@angular/core';
+import { MyComponentComponent } from './my-component.component';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [MyComponentComponent],
+  template: ` <app-my-component [(checked)]="checked"> </app-my-component> `,
+})
+export class AppComponent {
+  checked = signal(false);
+}
+```
+
+`MyComponentComponent` 可以将值写入 `checked` 模型输入，然后将值传播回 `AppComponent` 保持同步。
+
+需要注意的是，我们传递的是 signal 本身，而且是用 `[()]` 的形式，类似于 `ngModel` 的写法，这样才能把值传回父组件。
+
+这是因为在使用模型输入时，Angular 会自动为该模型创建相应的 `output`，名称的格式是 `modelNameChange`。
+
+### model() 对比 input()
+
+这两个 API 都是在 Angular 中定义基于 Signal 的输入的方法，但是有一些不同点：
+
+1. `model()` 既定义输入又定义输出。输出的名称是 `modelName` + `Change` 后缀，用来支持双向绑定。调用者可以决定仅使用输入、仅使用输出或者两者都使用。
+2. `ModeSignal` 是一个 `WritableSignal`，可以通过 `set` 和 `update` 方法修改值，`ModelSignal` 会将值发送到父组件。而 `InputSignal` 是只读的，只能通过模板更改。
+3. `model()` 不支持输入转换，而 `input` 支持输入转换。
+
+那么什么时候应该使用模型输入呢？
+
+一般需要根据用户输入来修改值的地方，可以使用模型输入，比如自定义的表单控件。
+
+## Signal queries
+
+用过 Angular 的同学应该对下面这几个装饰器不陌生：
+
+- `@ViewChild`
+- `@ViewChildren`
+- `@ContentChild`
+- `@ContentChildren`
+
+这些装饰器用于在组件类中访问子组件、指令或模板引用变量。以 `@ViewChild` 为例：
+
+```ts
+@ViewChild(ChildComponent) child!: ChildComponent;
+```
+
+Signals 为我们提供了类似的函数 API：`viewChild` 、 `contentChild` 、 `viewChildren` 和 `contentChildren`。
+
+```ts
+import { Component, viewChild } from '@angular/core';
+import { MyComponentComponent } from './my-component.component';
+
+@Component({...})
+export class AppComponent {
+  myComp = viewChild(MyComponentComponent);
+}
+```
+
+`myComp` 的类型也是 Signal，并且可以在 `effect` 和 `computed` 中使用。
+
+两种用法底层查询机制并没有明显变化，区别在于查询结果的可用时间。
+
+## 总结
+
+在最近的几个版本中，Angular 推出了许多函数式 API，Signals 显然是 Angular 未来发展的一个重要方向。在最新的 Angular 18 中，开发者已经可以选择完全抛弃基于 Zone.js 的方式，而完全使用 Signals 来进行开发。这标志着 Angular 在响应式编程领域的进一步创新和演进，为开发者提供了更加高效和灵活的工具集。
