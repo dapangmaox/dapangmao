@@ -26,4 +26,4 @@ jobs:
             git pull
             npm install
             npm run build
-            pm2 restart dapangmao --interpreter none -- start
+            pm2 restart dapangmao
