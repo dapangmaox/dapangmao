@@ -10,21 +10,16 @@ const BlogList = async () => {
   return (
     <div>
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 pt-10 sm:pt-16 md:mx-0 md:max-w-none md:grid-cols-3">
+        <div className="mx-auto max-w-2xl">
           {posts.map((post) => (
-            <article
+            <div
               key={post.slug}
-              className="flex max-w-xl flex-col items-start justify-between"
+              className="flex flex-col items-start justify-between"
             >
               <Link
                 href={`blog\\${post.slug}`}
                 className="flex flex-col justify-between h-full"
               >
-                <img
-                  className="w-full rounded-xl"
-                  src={`cover/${post.cover}.jpg`}
-                  alt="cover"
-                />
                 <div>
                   <div>
                     <h3 className="mt-3 text-lg font-semibold leading-6 text-gray-900 dark:text-slate-100 dark:hover:text-slate-300 hover:text-gray-500">
@@ -44,7 +39,8 @@ const BlogList = async () => {
                   </div>
                 </div>
               </Link>
-            </article>
+              <div className="w-full border-b mt-4"></div>
+            </div>
           ))}
         </div>
       </div>

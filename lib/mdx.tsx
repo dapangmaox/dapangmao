@@ -4,34 +4,36 @@ import rehypeCodeTitles from 'rehype-code-titles';
 import rehypePrettyCode from 'rehype-pretty-code';
 import rehypeSlug from 'rehype-slug';
 import remarkGfm from 'remark-gfm';
+import rehypeToc from '@/plugins/rehype-toc';
 
 const Mdx = async ({ source }: { source: string }) => {
-  return (
-    <section className="pl-3 pr-3">
-      <MDXRemote
-        source={source}
-        options={{
-          mdxOptions: {
-            remarkPlugins: [remarkGfm],
-            rehypePlugins: [
-              rehypeSlug,
-              [
-                rehypeAutolinkHeadings,
-                {
-                  properties: {
-                    className: ['anchor'],
-                  },
-                },
-                { behaviour: 'wrap' },
-              ],
-              rehypeCodeTitles,
-              [rehypePrettyCode, {}],
-            ] as any[],
-          },
-        }}
-      />
-    </section>
-  );
+  const toc: any[] = [];
+
+  const mdxContent = await MDXRemote({
+    source,
+    options: {
+      mdxOptions: {
+        remarkPlugins: [remarkGfm],
+        rehypePlugins: [
+          rehypeSlug,
+          [
+            rehypeAutolinkHeadings,
+            {
+              properties: {
+                className: ['anchor'],
+              },
+            },
+            { behaviour: 'wrap' },
+          ],
+          rehypeCodeTitles,
+          [rehypePrettyCode, {}],
+          [rehypeToc, { toc }],
+        ] as any[],
+      },
+    },
+  });
+
+  return { mdxContent, toc };
 };
 
 export default Mdx;

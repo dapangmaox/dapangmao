@@ -43,7 +43,24 @@ export const getBlogs = async () => {
   );
 };
 
-export async function getBlog(slug: string) {
-  const blogs = await getBlogs();
-  return blogs.find((blog) => blog?.slug === slug);
-}
+export const getBlog = async (slug: string): Promise<Blog | undefined> => {
+  const blogs = await fs.readdir('blogs/');
+
+  const blogFile = blogs.find(
+    (file) => path.extname(file) === '.mdx' && file.includes(slug)
+  );
+
+  if (!blogFile) {
+    return undefined;
+  }
+
+  const filePath = `blogs/${blogFile}`;
+  const blogContent = await fs.readFile(filePath, 'utf8');
+  const { data, content } = matter(blogContent);
+
+  return {
+    ...data,
+    body: content,
+    createdDate: dayjs(blogFile.substring(0, 10), 'YYYY-MM-DD').toDate(),
+  } as Blog;
+};

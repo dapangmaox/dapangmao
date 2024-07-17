@@ -1,3 +1,4 @@
+import TableOfContents from '@/app/components/TableOfContents';
 import { getBlogs, Blog, getBlog } from '@/lib/getBlogs';
 import Mdx from '@/lib/mdx';
 
@@ -21,17 +22,16 @@ export async function generateStaticParams() {
 
 const PostPage = async ({ params }: Props) => {
   const { body, cover, title } = (await getBlog(params.slug)) as Blog;
+  const { mdxContent, toc } = await Mdx({ source: body });
 
   return (
-    <>
-      <img
-        className="w-full rounded-xl"
-        src={`../cover/${cover}.jpg`}
-        alt="cover"
-      />
-      <h1 className="text-center">{title}</h1>
-      <Mdx source={body} />
-    </>
+    <div className="flex">
+      <div className="flex-1">
+        <h1 className="text-center mt-8">{title}</h1>
+        <section className="pl-3 pr-3">{mdxContent}</section>
+      </div>
+      <TableOfContents toc={toc} />
+    </div>
   );
 };
 
