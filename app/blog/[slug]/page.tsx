@@ -21,7 +21,11 @@ export async function generateStaticParams() {
 }
 
 const PostPage = async ({ params }: Props) => {
-  const { body, cover, title } = (await getBlog(params.slug)) as Blog;
+  const blog = await getBlog(params.slug);
+  if (!blog) {
+    return <div>Blog not found!</div>;
+  }
+  const { body, title } = blog;
   const { mdxContent, toc } = await Mdx({ source: body });
 
   return (

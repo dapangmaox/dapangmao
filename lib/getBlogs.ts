@@ -9,18 +9,9 @@ export type Blog = {
   tags: string[];
   description: string;
   body: string;
-  cover: string;
   createdDate: Date;
   lastModified?: number;
   views?: number;
-};
-
-export type Metadata = {
-  slug: string;
-  title: string;
-  date: string;
-  created: string;
-  tags: string[];
 };
 
 export const getBlogs = async () => {
@@ -36,6 +27,7 @@ export const getBlogs = async () => {
 
         return {
           ...data,
+          slug: file.substring(0, file.lastIndexOf('.')).substring(11),
           body: content,
           createdDate: dayjs(file.substring(0, 10), 'YYYY-MM-DD').toDate(),
         } as Blog;
