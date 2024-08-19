@@ -4,5 +4,10 @@
   "editor.formatOnSave": true,
   "editor.quickSuggestions": {
     "strings": true
-  }
+  },
+  "cSpell.words": [
+    "behaviour",
+    "rehype",
+    "typeof"
+  ]
 }

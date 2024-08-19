@@ -14,31 +14,31 @@ export type Blog = {
   views?: number;
 };
 
-export const getBlogs = async () => {
-  const blogs = await fs.readdir('blogs/');
+const BLOGS_DIR = 'blogs/';
 
-  return Promise.all(
-    blogs
-      .filter((file) => path.extname(file) === '.mdx')
-      .map(async (file) => {
-        const filePath = `blogs/${file}`;
-        const blogContent = await fs.readFile(filePath, 'utf8');
-        const { data, content } = matter(blogContent);
+const parseBlogFile = async (file: string): Promise<Blog> => {
+  const filePath = path.join(BLOGS_DIR, file);
+  const blogContent = await fs.readFile(filePath, 'utf8');
+  const { data, content } = matter(blogContent);
 
-        return {
-          ...data,
-          slug: file.substring(0, file.lastIndexOf('.')).substring(11),
-          body: content,
-          createdDate: dayjs(file.substring(0, 10), 'YYYY-MM-DD').toDate(),
-        } as Blog;
-      })
-  );
+  return {
+    ...data,
+    slug: file.substring(0, file.lastIndexOf('.')).substring(11),
+    body: content,
+    createdDate: dayjs(file.substring(0, 10), 'YYYY-MM-DD').toDate(),
+  } as Blog;
+};
+
+export const getBlogs = async (): Promise<Blog[]> => {
+  const files = await fs.readdir(BLOGS_DIR);
+  const blogFiles = files.filter((file) => path.extname(file) === '.mdx');
+  return Promise.all(blogFiles.map(parseBlogFile));
 };
 
 export const getBlog = async (slug: string): Promise<Blog | undefined> => {
-  const blogs = await fs.readdir('blogs/');
+  const files = await fs.readdir(BLOGS_DIR);
 
-  const blogFile = blogs.find(
+  const blogFile = files.find(
     (file) => path.extname(file) === '.mdx' && file.includes(slug)
   );
 
@@ -46,13 +46,5 @@ export const getBlog = async (slug: string): Promise<Blog | undefined> => {
     return undefined;
   }
 
-  const filePath = `blogs/${blogFile}`;
-  const blogContent = await fs.readFile(filePath, 'utf8');
-  const { data, content } = matter(blogContent);
-
-  return {
-    ...data,
-    body: content,
-    createdDate: dayjs(blogFile.substring(0, 10), 'YYYY-MM-DD').toDate(),
-  } as Blog;
+  return parseBlogFile(blogFile);
 };

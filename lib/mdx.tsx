@@ -26,9 +26,9 @@ const Mdx = async ({ source }: { source: string }) => {
             { behaviour: 'wrap' },
           ],
           rehypeCodeTitles,
-          [rehypePrettyCode, {}],
+          [rehypePrettyCode as any, {}],
           [rehypeToc, { toc }],
-        ] as any[],
+        ],
       },
     },
   });

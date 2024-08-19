@@ -1,6 +1,6 @@
-import Footer from './components/Footer';
-import Header from './components/Header';
-import ThemeProvider from './components/ThemeProvider';
+import Footer from './components/footer';
+import Header from './components/header';
+import ThemeProvider from './components/theme-provider';
 import './globals.css';
 
 export const metadata = {
@@ -15,10 +15,12 @@ export default function RootLayout({
 }) {
   return (
     <html suppressHydrationWarning={true}>
-      <body className="text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 flex flex-col min-h-screen">
+      <body className="text-slate-500 dark:text-slate-400 bg-white dark:bg-gray-900">
         <ThemeProvider>
           <Header />
-          <div className="grow pt-16">{children}</div>
+          <main className="pt-16 mx-auto max-w-3xl prose dark:prose-invert">
+            {children}
+          </main>
           <Footer />
         </ThemeProvider>
       </body>

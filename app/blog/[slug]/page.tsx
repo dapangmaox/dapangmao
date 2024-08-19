@@ -1,5 +1,5 @@
-import TableOfContents from '@/app/components/TableOfContents';
-import { getBlogs, Blog, getBlog } from '@/lib/getBlogs';
+import TableOfContents from '@/app/components/table-of-contents';
+import { getBlog, getBlogs } from '@/lib/getBlogs';
 import Mdx from '@/lib/mdx';
 
 export const revalidate = 10;
@@ -32,9 +32,9 @@ const PostPage = async ({ params }: Props) => {
     <div className="flex">
       <div className="flex-1">
         <h1 className="text-center mt-8">{title}</h1>
+        <TableOfContents toc={toc} />
         <section className="pl-3 pr-3">{mdxContent}</section>
       </div>
-      <TableOfContents toc={toc} />
     </div>
   );
 };
