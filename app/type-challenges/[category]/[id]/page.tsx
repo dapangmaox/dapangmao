@@ -31,6 +31,11 @@ export default async function QuestionPage({ params }: QuestionPageProps) {
 export async function generateStaticParams() {
   const baseDir = path.join(process.cwd(), 'questions');
 
+  // Ensure the directory exists
+  if (!fs.existsSync(baseDir)) {
+    fs.mkdirSync(baseDir, { recursive: true });
+  }
+
   const categories = fs.readdirSync(baseDir);
   let paths: { category: string; id: string }[] = [];
 
