@@ -35,16 +35,15 @@ const PostPage = async ({ params }: Props) => {
         <h1 className="text-center mt-8">{title}</h1>
         <TableOfContents toc={toc} />
         <div className="mt-4">
-          <h2 className="text-xl">Tags:</h2>
-          <ul className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-4">
             {tags.map((tag) => (
-              <li key={tag}>
+              <span key={tag}>
                 <Link href={`/tags/${tag}`}>#{tag}</Link>
-              </li>
+              </span>
             ))}
-          </ul>
+          </div>
         </div>
-        <section className="pl-3 pr-3">{mdxContent}</section>
+        <section>{mdxContent}</section>
       </div>
     </div>
   );

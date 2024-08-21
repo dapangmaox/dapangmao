@@ -20,9 +20,9 @@ const TableOfContents: React.FC<Props> = ({ toc }) => {
   };
 
   return (
-    <div className="flex-shrink-0 ml-4 border pl-2 rounded border-slate-300 dark:border-slate-700">
-      <div className="flex items-center justify-between my-2">
-        <div className="text-slate-500 dark:text-slate-300 text-xl">目录</div>
+    <div className="flex-shrink-0 border pl-2 rounded border-slate-300 dark:border-slate-700">
+      <div className="flex items-center justify-between my-1">
+        <div className="text-slate-500 dark:text-slate-300">目录</div>
         <button
           onClick={toggleExpand}
           className="text-slate-500 dark:text-slate-300 text-sm mr-2"

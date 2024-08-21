@@ -20,33 +20,27 @@ export async function generateStaticParams() {
   return Array.from(tags).map((tag) => ({ tag }));
 }
 
-export function generateMetadata({ params: { tag } }: Props) {
-  return {
-    title: `分类： ${tag}`,
-  };
-}
-
 const TagsPage = async ({ params: { tag } }: Props) => {
   const posts = await getPosts();
 
   if (!posts)
-    return <p className="mt-10 text-center">Sorry, no posts available.</p>;
+    return <p className="mt-10 text-center">抱歉，没有可用的文章。</p>;
 
   const tagPosts = posts.filter((post) => post.tags.includes(tag));
 
   if (!tagPosts.length) {
     return (
       <div className="text-center">
-        <p className="mt-10">Sorry, no posts for that keyword.</p>
-        <Link href="/">Back to Home</Link>
+        <p className="mt-10">抱歉，没有相关文章。</p>
+        <Link href="/">返回首页</Link>
       </div>
     );
   }
 
   return (
     <>
-      <h2 className="text-3xl mt-4 mb-0">Results for: #{tag}</h2>
-      <section className="mt-6 mx-auto max-w-2xl">
+      <h2 className="text-3xl mt-4 mb-0">#{tag}</h2>
+      <section className="mt-6">
         <ul className="w-full list-none p-0">
           {tagPosts.map((post) => (
             <PostItem key={post.slug} post={post} />
