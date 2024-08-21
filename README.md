@@ -34,3 +34,43 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+
+## Colors
+
+```
+// Light mode: text-gray-900, Dark mode: text-slate-100
+// Hover: Light mode: text-gray-700, Dark mode: text-slate-300
+text-gray-900 dark:text-slate-100 hover:text-gray-700 dark:hover:text-slate-300
+
+// Light mode: text-gray-800, Dark mode: text-slate-200
+// Hover: Light mode: text-gray-600, Dark mode: text-slate-400
+text-gray-800 dark:text-slate-200 hover:text-gray-600 dark:hover:text-slate-400
+
+// Light mode: text-gray-700, Dark mode: text-slate-300
+// Hover: Light mode: text-gray-500, Dark mode: text-slate-500
+text-gray-700 dark:text-slate-300 hover:text-gray-500 dark:hover:text-slate-500
+
+// Light mode: text-gray-600, Dark mode: text-slate-400
+// Hover: Light mode: text-gray-400, Dark mode: text-slate-600
+text-gray-600 dark:text-slate-400 hover:text-gray-400 dark:hover:text-slate-600
+
+// Light mode: text-gray-500, Dark mode: text-slate-500
+// Hover: Light mode: text-gray-300, Dark mode: text-slate-700
+text-gray-500 dark:text-slate-500 hover:text-gray-300 dark:hover:text-slate-700
+
+// Light mode: text-gray-400, Dark mode: text-slate-600
+// Hover: Light mode: text-gray-200, Dark mode: text-slate-800
+text-gray-400 dark:text-slate-600 hover:text-gray-200 dark:hover:text-slate-800
+
+// Light mode: text-gray-300, Dark mode: text-slate-700
+// Hover: Light mode: text-gray-100, Dark mode: text-slate-900
+text-gray-300 dark:text-slate-700 hover:text-gray-100 dark:hover:text-slate-900
+
+// Light mode: text-gray-200, Dark mode: text-slate-800
+// Hover: Light mode: text-gray-50, Dark mode: text-slate-950
+text-gray-200 dark:text-slate-800 hover:text-gray-50 dark:hover:text-slate-950
+
+// Light mode: text-gray-100, Dark mode: text-slate-900
+// Hover: Light mode: text-gray-50, Dark mode: text-slate-950
+text-gray-100 dark:text-slate-900 hover:text-gray-50 dark:hover:text-slate-950
+```

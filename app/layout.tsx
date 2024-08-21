@@ -1,4 +1,3 @@
-import Footer from './components/footer';
 import Header from './components/header';
 import ThemeProvider from './components/theme-provider';
 import './globals.css';
@@ -21,7 +20,6 @@ export default function RootLayout({
           <main className="pt-16 mx-auto max-w-3xl prose dark:prose-invert">
             {children}
           </main>
-          <Footer />
         </ThemeProvider>
       </body>
     </html>
