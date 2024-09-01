@@ -1,4 +1,5 @@
-import { getQuestionByName, getQuestionsMeta } from '@/lib/questions';
+import { getQuestionByName, getQuestions } from '@/lib/get-questions';
+import Mdx from '@/lib/mdx';
 
 interface QuestionPageProps {
   params: {
@@ -17,17 +18,18 @@ export default async function QuestionPage({
   if (!question) {
     return <div>Error loading content</div>;
   }
-  const { meta, content } = question;
+  const { title, content } = question;
+  const { mdxContent } = await Mdx({ source: content });
   return (
     <>
-      <h2 className="text-3xl mt-4 mb-0">{meta.title}</h2>
-      <article>{content}</article>
+      <h2 className="text-3xl mt-4 mb-0">{title}</h2>
+      <article>{mdxContent}</article>
     </>
   );
 }
 
 export async function generateStaticParams() {
-  const questions = await getQuestionsMeta();
+  const questions = await getQuestions();
 
   if (!questions) return [];
 
@@ -45,20 +47,20 @@ export async function generateStaticParams() {
   return params;
 }
 
-// export async function generateMetadata({
-//   params: { difficulty, id },
-// }: QuestionPageProps) {
-//   const question = await getQuestionContent(
-//     `questions/${difficulty}/${id}/README.md`
-//   );
+export async function generateMetadata({
+  params: { difficulty, id },
+}: QuestionPageProps) {
+  const question = await getQuestionByName(
+    `questions/${difficulty}/${id}/README.md`
+  );
 
-//   if (!question) {
-//     return {
-//       title: 'Post Not Found',
-//     };
-//   }
+  if (!question) {
+    return {
+      title: 'Post Not Found',
+    };
+  }
 
-//   return {
-//     title: id,
-//   };
-// }
+  return {
+    title: question.title,
+  };
+}
