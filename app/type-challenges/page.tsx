@@ -1,6 +1,8 @@
 import { getQuestions } from '@/lib/get-questions';
 import Link from 'next/link';
 
+export const revalidate = 3600;
+
 export async function generateMetadata() {
   return {
     title: 'Type Challenges Solutions',
