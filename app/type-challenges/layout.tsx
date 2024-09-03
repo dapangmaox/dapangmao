@@ -5,7 +5,7 @@ const TypeChallengesPageLayout = ({
 }) => {
   return (
     <>
-      <div className="mx-auto max-w-5xl px-6 lg:px-8 text-slate-950 prose dark:prose-invert">
+      <div className="mx-auto max-w-5xl  prose dark:prose-invert">
         {children}
       </div>
     </>

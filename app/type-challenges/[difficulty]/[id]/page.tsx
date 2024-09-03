@@ -8,6 +8,8 @@ interface QuestionPageProps {
   };
 }
 
+export const revalidate = 3600;
+
 export default async function QuestionPage({
   params: { difficulty, id },
 }: QuestionPageProps) {

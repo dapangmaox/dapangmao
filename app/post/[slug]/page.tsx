@@ -30,21 +30,19 @@ const PostPage = async ({ params }: Props) => {
   const { mdxContent, toc } = await Mdx({ source: body });
 
   return (
-    <div className="flex">
-      <div className="flex-1">
-        <h1 className="text-center mt-8">{title}</h1>
-        <TableOfContents toc={toc} />
-        <div className="mt-4">
-          <div className="flex flex-wrap gap-4">
-            {tags.map((tag) => (
-              <span key={tag}>
-                <Link href={`/tags/${tag}`}>#{tag}</Link>
-              </span>
-            ))}
-          </div>
+    <div>
+      <h1 className="text-center mt-8">{title}</h1>
+      <TableOfContents toc={toc} />
+      <div className="mt-4">
+        <div className="flex flex-wrap gap-4">
+          {tags.map((tag) => (
+            <span key={tag}>
+              <Link href={`/tags/${tag}`}>#{tag}</Link>
+            </span>
+          ))}
         </div>
-        <section>{mdxContent}</section>
       </div>
+      <section>{mdxContent}</section>
     </div>
   );
 };
