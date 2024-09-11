@@ -21,7 +21,8 @@ export default async function QuestionPage({
     return <div>Error loading content</div>;
   }
   const { title, content } = question;
-  const { mdxContent } = await Mdx({ source: content });
+  const { mdxContent } = await Mdx({ source: content, replaceImageUrl: true });
+
   return (
     <>
       <h2 className="text-3xl mt-4 mb-0">{title}</h2>

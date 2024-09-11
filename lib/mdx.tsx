@@ -5,15 +5,35 @@ import rehypePrettyCode from 'rehype-pretty-code';
 import rehypeSlug from 'rehype-slug';
 import remarkGfm from 'remark-gfm';
 import rehypeToc from '@/plugins/rehype-toc';
+import { visit } from 'unist-util-visit';
 
-const Mdx = async ({ source }: { source: string }) => {
+const repoUrl =
+  'https://raw.githubusercontent.com/dapangmaox/type-challenges-solutions/main';
+
+const relativeToAbsolute = (replaceImageUrl: boolean) => {
+  return () => (tree: any) => {
+    visit(tree, 'image', (node) => {
+      if (replaceImageUrl && node.url.startsWith('/')) {
+        node.url = `${repoUrl}${node.url}`;
+      }
+    });
+  };
+};
+
+const Mdx = async ({
+  source,
+  replaceImageUrl = false,
+}: {
+  source: string;
+  replaceImageUrl: boolean;
+}) => {
   const toc: any[] = [];
 
   const mdxContent = await MDXRemote({
     source,
     options: {
       mdxOptions: {
-        remarkPlugins: [remarkGfm],
+        remarkPlugins: [remarkGfm, relativeToAbsolute(replaceImageUrl)],
         rehypePlugins: [
           rehypeSlug,
           [
