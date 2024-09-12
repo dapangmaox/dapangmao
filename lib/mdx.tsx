@@ -25,7 +25,7 @@ const Mdx = async ({
   replaceImageUrl = false,
 }: {
   source: string;
-  replaceImageUrl: boolean;
+  replaceImageUrl?: boolean;
 }) => {
   const toc: any[] = [];
 
