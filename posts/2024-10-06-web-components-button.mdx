@@ -1,0 +1,264 @@
+---
+title: 使用 Web Components 实现一个 Button 组件
+description: 使用 Web Components 实现一个 Button 组件
+tags: [Web]
+---
+
+上篇文章我们介绍了 Web Components 的基本概念，本文将通过实现一个 Button 组件来进一步了解 Web Components。
+
+我们要实现的 Button 组件会包含以下特性特性：
+
+- Button 的 type：`default`、`primary`、`danger`
+- Button 的 size：`small`、`medium`、`large`
+- `click` 事件
+
+## 项目初始化
+
+首先，我们需要初始化一个项目，我选择了使用 Vite：
+
+```bash
+npm create vite@latest
+```
+
+根据提示选择 `vanilla` 模板，然后安装依赖：
+
+```bash
+cd <project-name>
+npm install
+```
+
+打开项目，把不需要的文件清理掉，代码文件只留下 `index.html` 和 `main.js`。
+
+根目录新建 `src/components` 目录，创建一个 `Button.js` 文件：
+
+在 `Button.js` 中先实现一个基本的 Button 组件：
+
+```javascript
+class Button extends HTMLElement {
+  constructor() {
+    // Always call super first in constructor
+    super();
+
+    const shadow = this.attachShadow({ mode: 'open' });
+
+    const button = document.createElement('button');
+    // textContent 属性来自 HTMLElement
+    button.textContent = this.textContent;
+
+    const style = document.createElement('style');
+    style.textContent = `
+      button {
+        padding: 8px 16px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: #f0f0f0;
+        color: #333;
+        cursor: pointer;
+      }
+    `;
+
+    shadow.appendChild(style);
+    shadow.appendChild(button);
+  }
+}
+
+customElements.define('my-button', Button);
+```
+
+在 `main.js` 中引入 `Button` 组件：
+
+```javascript
+import './src/components/Button.js';
+```
+
+在 `index.html` 文件，使用 `my-button` 组件：
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    ...
+  </head>
+  <body>
+    <my-button>Button</my-button>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
+```
+
+运行项目：
+
+```bash
+npm run dev
+```
+
+打开浏览器访问 `http://localhost:5173`，应该可以看到一个按钮。
+
+这样我们的项目初始化就完成了，接下来我们将实现 Button 组件的属性和事件。
+
+## Button 的属性
+
+我们要实现的 Button，具有 `type` 和 `size` 两个属性，用来设置 Button 的样式。
+
+要添加一些属性，分为以下几个步骤：
+
+1. 添加 `static get observedAttributes()` 方法，用于监听 `type` 和 `size` 属性的变化
+2. 添加 `connectedCallback` 和 `attributeChangedCallback` 方法，当属性变化时重新渲染 Button
+3. 添加对应状态的样式
+
+下面是完整的代码：
+
+```javascript
+class Button extends HTMLElement {
+  static get observedAttributes() {
+    return ['type', 'size'];
+  }
+
+  constructor() {
+    // Always call super first in constructor
+    super();
+
+    const shadow = this.attachShadow({ mode: 'open' });
+
+    const button = document.createElement('button');
+    // textContent 属性来自 HTMLElement
+    button.textContent = this.textContent;
+
+    const style = document.createElement('style');
+    style.textContent = `
+      button {
+        padding: 8px 16px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: #f0f0f0;
+        color: #333;
+        cursor: pointer;
+      }
+      button.default {
+        background-color: #f0f0f0;
+        color: #333;
+      }
+      button.primary {
+        background-color: #007bff;
+        color: #fff;
+      }
+      button.danger {
+        background-color: #dc3545;
+        color: #fff;
+      }
+      button.small {
+        padding: 4px 8px;
+        font-size: 12px;
+      }
+      button.medium {
+        padding: 8px 16px;
+        font-size: 14px;
+      }
+      button.large {
+        padding: 12px 24px;
+        font-size: 16px;
+      }
+    `;
+
+    shadow.appendChild(style);
+    shadow.appendChild(button);
+  }
+
+  connectedCallback() {
+    console.log('Button connected');
+    this.updateButton();
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    console.log('Button attribute changed', name, oldValue, newValue);
+    this.updateButton();
+  }
+
+  updateButton() {
+    const button = this.shadowRoot.querySelector('button');
+
+    // Remove previous type and size classes
+    button.classList.remove(
+      'default',
+      'primary',
+      'danger',
+      'small',
+      'medium',
+      'large'
+    );
+
+    // Add new type class
+    const type = this.getAttribute('type') || 'default';
+    button.classList.add(type);
+
+    // Add new size class
+    const size = this.getAttribute('size') || 'medium';
+    button.classList.add(size);
+  }
+}
+
+customElements.define('my-button', Button);
+```
+
+在 `index.html` 中使用：
+
+```html
+<my-button type="default" size="small">Click Me</my-button>
+<my-button type="primary" size="medium">Click Me</my-button>
+<my-button type="danger" size="large">Click Me</my-button>
+```
+
+![buttons](/images/2024/web-components/buttons.png)
+
+这样我们的 Button 组件就实现了属性的设置。
+
+## Button 的事件
+
+要添加一个 `click` 事件并暴露给外部，可以在 `connectedCallback` 方法中添加事件监听器，并在 `disconnectedCallback` 方法中移除事件监听器。
+
+```javascript
+class Button extends HTMLElement {
+  connectedCallback() {
+    console.log('Button connected');
+    this.updateButton();
+    this.shadowRoot
+      .querySelector('button')
+      .addEventListener('click', this.handleClick);
+  }
+
+  disconnectedCallback() {
+    console.log('Button disconnected');
+    this.shadowRoot
+      .querySelector('button')
+      .removeEventListener('click', this.handleClick);
+  }
+
+  handleClick(event) {
+    this.dispatchEvent(
+      new CustomEvent('button-click', {
+        detail: { message: 'Button clicked!' },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+}
+```
+
+> `dispatchEvent` 方法用于在当前元素上分发一个事件。这个方法会触发事件监听器，并执行与事件相关的回调函数。
+> `new CustomEvent()` 构造函数创建一个新的事件对象，可以传递一些参数，比如事件名称、事件参数等。
+
+在 `index.html` 中监听 `button-click` 事件：
+
+```html
+<my-button>Click Me</my-button>
+<script>
+  document
+    .querySelector('my-button')
+    .addEventListener('button-click', (event) => {
+      console.log(event.detail.message);
+    });
+</script>
+```
+
+点击 Button，控制台会输出 `Button clicked!`。
