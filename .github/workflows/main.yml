@@ -26,5 +26,5 @@ jobs:
 
       - name: Deploy to server
         run: |
-          scp -r ./* ${{ secrets.SERVER_USERNAME }}@y${{ secrets.SERVER_HOST }}:/usr/www/dapangmao
-          ssh ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} 'pm2 restart dapangmao'
+          scp -r -o StrictHostKeyChecking=no ./* ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}:/usr/www/dapangmao
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} 'pm2 restart dapangmao'

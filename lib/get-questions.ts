@@ -32,7 +32,7 @@ async function getQuestionContent(
   const url = `https://api.github.com/repos/dapangmaox/type-challenges-solutions/contents/${filepath}`;
   const headers = {
     Accept: 'application/vnd.github.v3.raw',
-    Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+    Authorization: `Bearer ${process.env.MY_GITHUB_TOKEN}`,
   };
   try {
     const res = await fetchFromGitHub(url, headers);
@@ -64,7 +64,7 @@ async function fetchRepoFileTree(): Promise<Filetree | undefined> {
     'https://api.github.com/repos/dapangmaox/type-challenges-solutions/git/trees/main?recursive=1';
   const headers = {
     Accept: 'application/vnd.github+json',
-    Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+    Authorization: `Bearer ${process.env.MY_GITHUB_TOKEN}`,
     'X-GitHub-Api-Version': '2022-11-28',
   };
   try {
