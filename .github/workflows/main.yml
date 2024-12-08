@@ -24,10 +24,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install and build project
-        run: |
-          npm install
-          npm run build
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
 
       - name: Add SSH key
         run: |
@@ -35,18 +36,17 @@ jobs:
           echo "${SERVER_SSH_KEY}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
+      - name: Remove remote directory
+        run: ssh -o StrictHostKeyChecking=no $SERVER_USERNAME@$SERVER_HOST 'rm -rf /usr/www/dapangmao/{*,.*}'
+
       - name: Compress build files
         run: tar -czf build.tar.gz -C .next .
 
       - name: Copy compressed file to server
         run: scp -o StrictHostKeyChecking=no build.tar.gz $SERVER_USERNAME@$SERVER_HOST:/usr/www/dapangmao
 
-      - name: Deploy and restart application
-        run: |
-          ssh -o StrictHostKeyChecking=no $SERVER_USERNAME@$SERVER_HOST << 'EOF'
-            rm -rf /usr/www/dapangmao/{*,.*}
-            tar -xzf /usr/www/dapangmao/build.tar.gz -C /usr/www/dapangmao
-            rm /usr/www/dapangmao/build.tar.gz
-            cd /usr/www/dapangmao
-            pm2 restart dapangmao
-          EOF
+      - name: Extract compressed file on server
+        run: ssh -o StrictHostKeyChecking=no $SERVER_USERNAME@$SERVER_HOST 'tar -xzf /usr/www/dapangmao/build.tar.gz -C /usr/www/dapangmao && rm /usr/www/dapangmao/build.tar.gz'
+
+      - name: Restart application
+        run: ssh -o StrictHostKeyChecking=no $SERVER_USERNAME@$SERVER_HOST 'cd /usr/www/dapangmao && pm2 restart dapangmao'
