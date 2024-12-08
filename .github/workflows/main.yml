@@ -9,6 +9,12 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    env:
+      SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
+      SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+      SERVER_PORT: ${{ secrets.SERVER_PORT }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -18,23 +24,27 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build project
-        run: npm run build
+      - name: Install and build project
+        run: |
+          npm install
+          npm run build
 
       - name: Add SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+          echo "${SERVER_SSH_KEY}" > ~/.ssh/id_rsa
 
-      - name: Remove remote directory
-        run: ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} 'rm -rf /usr/www/dapangmao/*'
+      - name: Compress build files and copy to server
+        run: |
+          tar -czf build.tar.gz -C .next .
+          scp -o StrictHostKeyChecking=no build.tar.gz $SERVER_USERNAME@$SERVER_HOST:/usr/www/dapangmao
 
-      - name: Copy files to server
-        run: scp -r -o StrictHostKeyChecking=no .next/* ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}:/usr/www/dapangmao
-
-      - name: Restart server application
-        run: ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} 'pm2 restart dapangmao'
+      - name: Deploy and restart application
+        run: |
+          ssh -o StrictHostKeyChecking=no $SERVER_USERNAME@$SERVER_HOST << 'EOF'
+            rm -rf /usr/www/dapangmao/{*,.*}
+            tar -xzf /usr/www/dapangmao/build.tar.gz -C /usr/www/dapangmao
+            rm /usr/www/dapangmao/build.tar.gz
+            cd /usr/www/dapangmao
+            pm2 restart dapangmao
+          EOF
