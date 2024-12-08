@@ -35,10 +35,11 @@ jobs:
           echo "${SERVER_SSH_KEY}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-      - name: Compress build files and copy to server
-        run: |
-          tar -czf build.tar.gz -C .next .
-          scp -o StrictHostKeyChecking=no build.tar.gz $SERVER_USERNAME@$SERVER_HOST:/usr/www/dapangmao
+      - name: Compress build files
+        run: tar -czf build.tar.gz -C .next .
+
+      - name: Copy compressed file to server
+        run: scp -o StrictHostKeyChecking=no build.tar.gz $SERVER_USERNAME@$SERVER_HOST:/usr/www/dapangmao
 
       - name: Deploy and restart application
         run: |
