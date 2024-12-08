@@ -36,11 +36,5 @@ jobs:
       - name: Copy files to server
         run: scp -r -o StrictHostKeyChecking=no .next/* ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}:/usr/www/dapangmao
 
-      - name: Copy package.json to server
-        run: scp -o StrictHostKeyChecking=no package.json ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}:/usr/www/dapangmao
-
-      - name: Install dependencies on server
-        run: ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} 'cd /usr/www/dapangmao && npm install --production'
-
       - name: Restart server application
         run: ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} 'pm2 restart dapangmao'
