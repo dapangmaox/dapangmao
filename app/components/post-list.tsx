@@ -1,11 +1,7 @@
-import { getPosts } from '@/lib/get-posts';
+import { Post } from '@/lib/get-posts';
 import PostItem from './post-item';
 
-const PostList = async () => {
-  const posts = (await getPosts()).sort(
-    (a, b) => b.createdDate.getTime() - a.createdDate.getTime()
-  );
-
+const PostList = ({ posts }: { posts: Post[] }) => {
   return (
     <div>
       {posts.map((post) => (
