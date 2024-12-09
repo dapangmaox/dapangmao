@@ -55,4 +55,4 @@ jobs:
         run: ssh -o StrictHostKeyChecking=no $SERVER_USERNAME@$SERVER_HOST 'cd /usr/www/dapangmao && npm install --production'
 
       - name: Restart server application
-        run: ssh -o StrictHostKeyChecking=no $SERVER_USERNAME@$SERVER_HOST 'pm2 start npm --name "dapangmao" -- start'
+        run: ssh -o StrictHostKeyChecking=no $SERVER_USERNAME@$SERVER_HOST 'pm2 restart dapangmao'
