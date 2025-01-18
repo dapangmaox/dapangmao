@@ -21,12 +21,12 @@ const Header = () => {
             >
               type-challenges
             </Link>
-            {/* <Link
+            <Link
               href={'/projects'}
               className="mr-6 text-gray-900 dark:text-slate-100 dark:hover:text-slate-300 hover:text-gray-500"
             >
               Projects
-            </Link> */}
+            </Link>
             <ThemeSwitcher />
           </div>
         </div>
