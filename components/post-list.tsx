@@ -1,5 +1,5 @@
-import { Post } from '@/lib/get-posts';
-import PostItem from './post-item';
+import { Post } from "@/lib/get-posts";
+import PostItem from "./post-item";
 
 const PostList = ({ posts }: { posts: Post[] }) => {
   return (
