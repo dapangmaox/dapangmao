@@ -1,5 +1,5 @@
-import PostList from './components/post-list';
-import Footer from './components/footer';
+import PostList from '../components/post-list';
+import Footer from '../components/footer';
 import { getPosts } from '@/lib/get-posts';
 
 export default async function Home() {

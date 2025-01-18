@@ -1,4 +1,4 @@
-import PostItem from '@/app/components/post-item';
+import PostItem from '@/components/post-item';
 import { getPosts } from '@/lib/get-posts';
 import Link from 'next/link';
 

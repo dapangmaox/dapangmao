@@ -1,5 +1,5 @@
-import Header from './components/header';
-import ThemeProvider from './components/theme-provider';
+import Header from '../components/header';
+import ThemeProvider from '../components/theme-provider';
 import './globals.css';
 
 export const metadata = {

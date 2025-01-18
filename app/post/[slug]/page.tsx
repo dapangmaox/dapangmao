@@ -1,4 +1,4 @@
-import TableOfContents from '@/app/components/table-of-contents';
+import TableOfContents from '@/components/table-of-contents';
 import { getPost, getPosts } from '@/lib/get-posts';
 import Mdx from '@/lib/mdx';
 import Link from 'next/link';
