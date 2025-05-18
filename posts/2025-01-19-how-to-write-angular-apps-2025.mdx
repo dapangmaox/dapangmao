@@ -1,0 +1,103 @@
+---
+title: 2025 年应该怎样初始化 Angular 项目
+description: Angular 在近两年发布了多个版本，不断更新和改进。如果你是一个 Angular 开发者，你可能会发现 Angular 的生态系统变得越来越庞大，新的工具和技术层出不穷。那么，如果你要开始一个新的 Angular 项目，你应该使用哪些工具和技术呢？
+tags: [Angular]
+---
+
+## 初始化 Angular 项目
+
+首先使用 pnpm 创建一个新的 Angular 项目：
+
+```bash
+pnpm create @angular@latest --experimental-zoneless --ssr false --style scss [yourProjectName]
+```
+
+[@angular/create](https://github.com/angular/angular-cli/tree/main/packages/angular/create) 也是 Angular 官方提供的脚手架工具，不需要全局安装 `Angular CLI`，就可以创建 Angular 应用，并且支持所有 `ng new` 的选项和功能。
+
+- `--experimental-zoneless` 参数表示使用 zoneless 模式
+- `--ssr false` 表示不启用服务端渲染
+- `--style scss` 表示使用 SCSS 作为样式预处理器。
+
+创建完成之后在 `angular.json` 中添加 `"changeDetection": "OnPush"`，具体路径位于 `projects.[yourProjectName].schematics.@schematics/angular:component`。
+
+## UI
+
+接下来是选择 UI 组件库。Angular 的 UI 组件库有很多，最常用的有：
+
+- [Angular Material](https://material.angular.io/)
+- [PrimeNG](https://www.primefaces.org/primeng/)
+- [NG-ZORRO](https://ng.ant.design/)
+
+这里推荐使用 [Angular Material](https://material.angular.dev/)，因为它是 Angular 官方提供的 UI 组件库，和 Angular 的生态系统兼容性最好，文档也很完善。
+
+```bash
+pnpm ng add @angular/material
+```
+
+除了组件库之外，我们还希望配置 [Tailwind CSS](https://tailwindcss.com/docs/installation/framework-guides/angular) 来编写样式。Tailwind CSS 是一个功能类优先的 CSS 框架，允许我们使用类名来构建样式，在 Angular 中使用也非常简单。
+
+```bash
+pnpm install tailwindcss @tailwindcss/postcss postcss
+```
+
+在项目根目录下创建 `.postcssrc.json` 文件，内容如下：
+
+```json
+{
+  "plugins": {
+    "@tailwindcss/postcss": {}
+  }
+}
+```
+
+添加 `@import "tailwindcss";` 到 `src/styles.scss` 文件中。
+
+## Linting
+
+代码规范和格式化是团队开发中非常重要的一部分。我们使用 `angular-eslint`、`prettier`、`husky` 和 `lint-staged` 来实现代码规范和格式化。
+
+首先安装 `angular-eslint`：
+
+```bash
+pnpm ng add angular-eslint
+```
+
+`angular-eslint` 会自动为我们配置 ESLint。
+
+接下来安装 `prettier`、`husky` 和 `lint-staged`：
+
+```bash
+pnpm i -D husky prettier lint-staged
+```
+
+简单说一下这几个工具的作用：
+
+- `prettier`：代码格式化工具，可以自动格式化代码，在代码提交之前通过 `husky` 钩子自动运行。
+- `husky`：Git 钩子工具，可以在 Git 提交和推送时执行一些脚本，比如运行 ESLint 和 Prettier。
+- `lint-staged`：可以在 Git 提交时只检查和格式化暂存区的文件，避免检查和格式化所有文件，提高效率。
+
+初始化 `husky`：
+
+```bash
+pnpm husky init
+```
+
+这会在项目根目录下创建一个 `.husky` 文件夹，并在其中创建一个 `pre-commit` 钩子文件。
+
+创建 `.lintstagedrc` 文件，内容如下：
+
+```json
+{
+  "*.{js,ts,json,html,scss,css,md}": ["prettier --write"]
+}
+```
+
+在 `.husky/pre-commit` 文件中添加以下内容：
+
+```bash
+pnpm ng lint
+pnpm ng test --watch=false
+pnpm lint-staged --allow-empty
+```
+
+这样在提交代码时会自动运行 ESLint 和 Prettier，并且 Prettier 只格式化暂存区的文件。
