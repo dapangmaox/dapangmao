@@ -17,7 +17,7 @@ export default function RootLayout({
       <body className="flex flex-col items-center bg-background text-foreground">
         <ThemeProvider>
           <Header />
-          <main className="prose w-full max-w-3xl px-4 pt-16 dark:prose-invert sm:px-8">
+          <main className="prose w-full max-w-5xl px-4 pt-16 dark:prose-invert sm:px-8">
             {children}
           </main>
         </ThemeProvider>
