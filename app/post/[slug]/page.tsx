@@ -6,9 +6,9 @@ import Link from 'next/link';
 export const revalidate = 3600;
 
 type Props = {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 };
 
 export async function generateStaticParams() {
@@ -21,7 +21,8 @@ export async function generateStaticParams() {
   }));
 }
 
-const PostPage = async ({ params }: Props) => {
+const PostPage = async (props: Props) => {
+  const params = await props.params;
   const post = await getPost(params.slug);
   if (!post) {
     return <div>Post not found!</div>;

@@ -2,17 +2,22 @@ import { getQuestionByName, getQuestions } from '@/lib/get-questions';
 import Mdx from '@/lib/mdx';
 
 interface QuestionPageProps {
-  params: {
+  params: Promise<{
     difficulty: string;
     id: string;
-  };
+  }>;
 }
 
 export const revalidate = 3600;
 
-export default async function QuestionPage({
-  params: { difficulty, id },
-}: QuestionPageProps) {
+export default async function QuestionPage(props: QuestionPageProps) {
+  const params = await props.params;
+
+  const {
+    difficulty,
+    id
+  } = params;
+
   const question = await getQuestionByName(
     `questions/${difficulty}/${id}/README.md`
   );
@@ -50,9 +55,14 @@ export async function generateStaticParams() {
   return params;
 }
 
-export async function generateMetadata({
-  params: { difficulty, id },
-}: QuestionPageProps) {
+export async function generateMetadata(props: QuestionPageProps) {
+  const params = await props.params;
+
+  const {
+    difficulty,
+    id
+  } = params;
+
   const question = await getQuestionByName(
     `questions/${difficulty}/${id}/README.md`
   );

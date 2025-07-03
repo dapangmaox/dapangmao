@@ -1,14 +1,9 @@
-import PostList from "../components/post-list";
-import { getPosts } from "@/lib/get-posts";
+import TypeChallenges from "@/components/type-challenges";
 
 export default async function Home() {
-  const posts = (await getPosts()).sort(
-    (a, b) => b.createdDate.getTime() - a.createdDate.getTime(),
-  );
-
   return (
     <>
-      <PostList posts={posts} />
+      <TypeChallenges />
     </>
   );
 }

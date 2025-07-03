@@ -13,7 +13,7 @@ const Header = () => {
             </Link>
           </div>
           <div className="flex items-center">
-            <Link
+            {/* <Link
               href={"/"}
               className="mr-6 hover:text-gray-500 dark:hover:text-slate-300"
             >
@@ -30,7 +30,7 @@ const Header = () => {
               className="mr-6 hover:text-gray-500 dark:hover:text-slate-300"
             >
               Type-Challenges
-            </Link>
+            </Link> */}
             <ThemeSwitcher />
           </div>
         </div>

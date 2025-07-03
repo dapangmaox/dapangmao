@@ -1,24 +1,24 @@
-import { getQuestions } from '@/lib/get-questions';
-import Link from 'next/link';
+import { getQuestions } from "@/lib/get-questions";
+import Link from "next/link";
 
 export const revalidate = 3600;
 
 const difficultyMap = {
-  easy: '简单',
-  medium: '中等',
-  hard: '困难',
-  extreme: '地狱',
+  easy: "简单",
+  medium: "中等",
+  hard: "困难",
+  extreme: "地狱",
 };
 
 export async function generateMetadata() {
   return {
-    title: 'Type Challenges Solutions',
-    description: 'Type Challenges Solutions',
-    slug: 'type-challenges',
+    title: "Type Challenges Solutions",
+    description: "Type Challenges Solutions",
+    slug: "type-challenges",
   };
 }
 
-const TypeChallengesPage = async () => {
+const TypeChallenges = async () => {
   const questionsGroup = await getQuestions();
 
   if (!questionsGroup) {
@@ -28,16 +28,16 @@ const TypeChallengesPage = async () => {
   return (
     <div>
       <div className="mt-6">
-        <h1 className="text-3xl text-center">Type Challenges Solutions</h1>
+        <h1 className="text-center text-3xl">Type Challenges Solutions</h1>
         <p>
           <a
             href="https://github.com/type-challenges/type-challenges"
-            className="text-blue-600 hover:text-blue-800 no-underline"
+            className="text-blue-600 no-underline hover:text-blue-800"
             target="_blank"
             rel="noopener noreferrer"
           >
             Type Challenges
-          </a>{' '}
+          </a>{" "}
           是一个开源项目，旨在通过一系列的 TypeScript
           类型体操挑战来帮助开发者更好地理解和掌握 TypeScript
           的类型系统。这个项目包含了各种难度的挑战，从基础到高级，涵盖了
@@ -60,14 +60,14 @@ const TypeChallengesPage = async () => {
                 <div key={question.id} className="flex items-center">
                   <span
                     className="mr-2"
-                    style={{ minWidth: '2rem', textAlign: 'right' }}
+                    style={{ minWidth: "2rem", textAlign: "right" }}
                   >
                     {index + 1}.
                   </span>
                   <Link
-                    href={`/type-challenges/${group.difficulty}/${question.id}`.replace(
-                      '/README.md',
-                      ''
+                    href={`/${group.difficulty}/${question.id}`.replace(
+                      "/README.md",
+                      "",
                     )}
                   >
                     {question.title}
@@ -82,4 +82,4 @@ const TypeChallengesPage = async () => {
   );
 };
 
-export default TypeChallengesPage;
+export default TypeChallenges;
